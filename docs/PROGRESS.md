@@ -10,7 +10,7 @@
 | Phase | 描述 | 状态 |
 |-------|------|------|
 | Phase 1 | 基础设施 | ✅ 已完成 |
-| Phase 2 | 论文管理 | ⏳ 待开始 |
+| Phase 2 | 论文管理 | ✅ 已完成 |
 | Phase 3 | AI 服务 | ⏳ 待开始 |
 | Phase 4 | 实验执行 | ⏳ 待开始 |
 | Phase 5 | 前端 | ⏳ 待开始 |
@@ -103,12 +103,64 @@
 
 ---
 
-## 下一步：Phase 2 论文管理
+## Phase 2: 论文管理 ✅
+
+**完成时间**：2026-07-28
+
+### M4: PDF 解析服务 ✅
+
+**文件**：`backend/app/services/paper/parser.py`、`backend/app/schemas/paper.py`
+
+**能力**：
+- PyMuPDF 提取全文、标题、作者、摘要、章节、引用
+- 可选 Claude AI 增强（关键词 + 核心贡献）
+- AI 不可用时降级为本地 TF-IDF 规则
+
+**验证**：PDFParser 初始化成功，数据结构完整
+
+### M5: 论文检索/下载 ✅
+
+**文件**：`backend/app/services/paper/downloader.py`
+
+**能力**：
+- `ArxivClient`：arXiv API 搜索 + PDF 下载（3 次重试）
+- `SemanticScholarClient`：Semantic Scholar API 搜索（仅元数据）
+- `FakeSearchClient`：可注入测试替身，离线可用
+- 协议 `PaperSearchClient` 抽象所有人
+
+**验证**：FakeSearchClient 搜索/下载/失败处理全部通过
+
+### M6: 论文库 ✅
+
+**后端文件**：`backend/app/services/paper/library.py`、`backend/app/api/papers.py`
+
+**API 路由**（7 个）：
+- `GET /api/projects/{id}/papers` — 论文列表（支持关键词/来源筛选）
+- `POST /api/projects/{id}/papers/search` — 外部搜索
+- `POST /api/projects/{id}/papers` — 添加论文
+- `GET /api/papers/{id}` — 论文详情
+- `DELETE /api/papers/{id}` — 删除论文
+- `POST /api/papers/{id}/upload` — 手动上传 PDF
+- `GET /api/projects/{id}/papers/keywords` — 关键词分组
+
+**前端文件**：`frontend/src/pages/ReferencePapers.tsx`
+
+**功能**：
+- 论文库列表（标题、作者、关键词标签、下载状态）
+- 搜索 arXiv 并添加到库
+- 手动上传失败的论文 PDF
+- 删除论文
+
+**验证**：TypeScript 类型检查通过，Vite 构建成功
+
+---
+
+## 下一步：Phase 3 AI 服务
 
 待开发模块：
-- M4: PDF 解析（PyMuPDF + Claude API）
-- M5: 论文下载（arxiv API + Semantic Scholar API）
-- M6: 论文库管理
+- M7: CodeAgent（Claude Agent SDK 集成）
+- M8: Diagnostician（实验诊断）
+- M9: BrainstormDialog（引导对话）
 
 ---
 
