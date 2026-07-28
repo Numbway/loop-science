@@ -81,6 +81,17 @@ export interface ReferencePaper {
   download_error: string | null;
 }
 
+// Paper Metadata (search result)
+export interface PaperMetadata {
+  title: string;
+  authors: string[];
+  year: number | null;
+  arxiv_id: string | null;
+  url: string | null;
+  abstract: string | null;
+  keywords: string[];
+}
+
 // API
 export interface ApiError {
   detail: string;
