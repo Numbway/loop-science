@@ -11,8 +11,8 @@
 |-------|------|------|
 | Phase 1 | 基础设施 | ✅ 已完成 |
 | Phase 2 | 论文管理 | ✅ 已完成 |
-| Phase 3 | AI 服务 | ⏳ 待开始 |
-| Phase 4 | 实验执行 | ⏳ 待开始 |
+| Phase 3 | AI 服务 | ✅ 已完成 |
+| Phase 4 | 实验执行 | 🔄 进行中 |
 | Phase 5 | 前端 | ⏳ 待开始 |
 | Phase 6 | 完善 | ⏳ 待开始 |
 
@@ -155,12 +155,40 @@
 
 ---
 
-## 下一步：Phase 3 AI 服务
+## Phase 4: 实验执行 🔄
+
+**完成时间**：2026-07-29
+
+### M10: GitService ✅
+
+**文件清单**：
+- `backend/app/api/git.py` — Git 相关 REST API
+- `backend/app/services/git/service.py` — GitService 核心实现
+- `backend/app/schemas/git.py` — 仓库、分支、提交请求/响应模型
+- `backend/tests/api/test_git.py` — API 集成测试
+- `backend/tests/services/git/` — GitService 单元测试
+
+**能力**：
+- 初始化项目仓库并隔离在项目目录内
+- 创建基于实验节点的分支
+- 提交真实文件变更并返回 commit SHA
+- 查询仓库状态并区分 clean / dirty 工作区
+- 通过 REST API 暴露仓库初始化、分支、提交、状态查询
+
+**验证结果**：
+- ✅ `python -m pytest -v` 通过（15 项）
+- ✅ M10 相关文件的 `ruff check` 通过
+- ✅ API 测试验证仓库初始化、分支创建、提交和状态查询；当前 FastAPI 版本以嵌套 router 形式注册 5 条 repository 路由
+- ⚠️ `ruff check .` 仍报告 51 项既有问题，位于 Alembic、认证、论文、模型和 AI 服务等 M10 范围外文件
+
+---
+
+## 下一步：M11 Docker Executor
 
 待开发模块：
-- M7: CodeAgent（Claude Agent SDK 集成）
-- M8: Diagnostician（实验诊断）
-- M9: BrainstormDialog（引导对话）
+- M11: Docker Executor
+- M12: Celery 任务
+- M13: 实验监控
 
 ---
 

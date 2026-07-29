@@ -1378,10 +1378,10 @@ JWT_SECRET=xxx
 | M4 PDF 解析 | ✅ 已完成 | 2026-07-28 | - |
 | M5 论文下载 | ✅ 已完成 | 2026-07-28 | - |
 | M6 论文库 | ✅ 已完成 | 2026-07-28 | - |
-| M7 CodeAgent ⭐ | ⏳ 待开始 | - | - |
-| M8 Diagnostician | ⏳ 待开始 | - | - |
-| M9 BrainstormDialog | ⏳ 待开始 | - | - |
-| M10 GitService | ⏳ 待开始 | - | - |
+| M7 CodeAgent ⭐ | ✅ 已完成 | 2026-07-29 | - |
+| M8 Diagnostician | ✅ 已完成 | 2026-07-29 | - |
+| M9 BrainstormDialog | ✅ 已完成 | 2026-07-29 | - |
+| M10 GitService | ✅ 已完成 | 2026-07-29 | - |
 | M11 Docker Executor | ⏳ 待开始 | - | - |
 | M12 Celery 任务 | ⏳ 待开始 | - | - |
 | M13 实验监控 | ⏳ 待开始 | - | - |

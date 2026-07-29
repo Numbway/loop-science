@@ -92,3 +92,37 @@ def test_branch_endpoint_maps_dirty_worktree_to_safe_conflict(tmp_path) -> None:
         }
     }
     assert (repository_path / "uncommitted.txt").read_text(encoding="utf-8") == "keep me"
+
+
+def test_repository_api_supports_initialize_branch_commit_and_status(tmp_path) -> None:
+    project_id = uuid.uuid4()
+    service = GitService(tmp_path)
+    app.dependency_overrides[get_git_service] = lambda: service
+    app.dependency_overrides[get_owned_project] = lambda: SimpleNamespace(id=project_id)
+
+    try:
+        client = TestClient(app)
+        initialized = client.post(f"/api/projects/{project_id}/repository")
+        parent_sha = initialized.json()["head_sha"]
+        branch = client.post(
+            f"/api/projects/{project_id}/repository/branches",
+            json={"node_id": "1", "parent_commit_sha": parent_sha},
+        )
+        repository_path = tmp_path / str(project_id) / "git_repo"
+        (repository_path / "train.py").write_text("print('train')\n", encoding="utf-8")
+        committed = client.post(
+            f"/api/projects/{project_id}/repository/commits",
+            json={"message": "Add training entry point"},
+        )
+        final_status = client.get(f"/api/projects/{project_id}/repository/status")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert initialized.status_code == 200
+    assert branch.status_code == 200
+    assert branch.json()["name"] == "exp/1"
+    assert committed.status_code == 200
+    assert final_status.status_code == 200
+    assert final_status.json()["current_branch"] == "exp/1"
+    assert final_status.json()["head_sha"] == committed.json()["sha"]
+    assert final_status.json()["is_clean"] is True
