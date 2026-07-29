@@ -11,10 +11,16 @@ from app.services.git.exceptions import (
     NothingToCommitError,
     RepositoryNotFoundError,
 )
-from app.services.git.service import GitService, RepositoryInfo, RepositoryStatus
+from app.services.git.service import (
+    BranchInfo,
+    GitService,
+    RepositoryInfo,
+    RepositoryStatus,
+)
 
 __all__ = [
     "BranchAlreadyExistsError",
+    "BranchInfo",
     "BranchNotFoundError",
     "DirtyWorkingTreeError",
     "GitService",
