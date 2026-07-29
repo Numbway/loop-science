@@ -7,6 +7,7 @@ from app.services.git.exceptions import (
     DirtyWorkingTreeError,
     InvalidBranchNameError,
     InvalidCommitError,
+    NothingToCommitError,
 )
 from app.services.git.service import GitService
 
@@ -111,3 +112,31 @@ def test_branch_create_and_checkout_reject_dirty_worktree_without_losing_changes
         service.create_experiment_branch(project_id, "1", initial.head_sha)
 
     assert dirty_file.read_text(encoding="utf-8") == "value = 1\n"
+
+
+def test_commit_changes_stages_real_changes_and_returns_commit_info(tmp_path) -> None:
+    project_id = uuid.uuid4()
+    service = GitService(tmp_path)
+    service.initialize_project_repository(project_id)
+    repository_path = tmp_path / str(project_id) / "git_repo"
+    (repository_path / "model.py").write_text("class Model: pass\n", encoding="utf-8")
+
+    commit = service.commit_changes(project_id, "Add initial model")
+    status = service.get_repository_status(project_id)
+
+    assert commit.summary == "Add initial model"
+    assert commit.branch_name == "main"
+    assert len(commit.sha) == 40
+    assert status.head_sha == commit.sha
+    assert status.is_clean is True
+
+
+def test_commit_changes_rejects_empty_worktree_and_blank_message(tmp_path) -> None:
+    project_id = uuid.uuid4()
+    service = GitService(tmp_path)
+    service.initialize_project_repository(project_id)
+
+    with pytest.raises(NothingToCommitError):
+        service.commit_changes(project_id, "No changes")
+    with pytest.raises(NothingToCommitError):
+        service.commit_changes(project_id, "   ")

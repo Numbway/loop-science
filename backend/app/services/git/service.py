@@ -16,6 +16,7 @@ from app.services.git.exceptions import (
     InvalidBranchNameError,
     InvalidCommitError,
     InvalidRepositoryPathError,
+    NothingToCommitError,
     RepositoryNotFoundError,
 )
 
@@ -38,6 +39,13 @@ class RepositoryStatus:
 class BranchInfo:
     name: str
     head_sha: str
+
+
+@dataclass(frozen=True)
+class CommitInfo:
+    sha: str
+    summary: str
+    branch_name: str
 
 
 class GitService:
@@ -138,6 +146,23 @@ class GitService:
             head_sha=repo.head.commit.hexsha,
             is_clean=not repo.is_dirty(untracked_files=True),
             branches=branches,
+        )
+
+    def commit_changes(self, project_id: uuid.UUID, message: str) -> CommitInfo:
+        repo = self._open_repository(project_id)
+        normalized_message = message.strip()
+        if not normalized_message or not repo.is_dirty(untracked_files=True):
+            raise NothingToCommitError(
+                message="Repository has no changes to commit.",
+                hint="Add or modify files, then provide a non-empty commit message.",
+            )
+
+        repo.git.add(A=True)
+        commit = repo.index.commit(normalized_message)
+        return CommitInfo(
+            sha=commit.hexsha,
+            summary=normalized_message,
+            branch_name=repo.active_branch.name,
         )
 
     def create_experiment_branch(
