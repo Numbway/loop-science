@@ -10,9 +10,9 @@
 | Phase | 描述 | 状态 |
 |-------|------|------|
 | Phase 1 | 基础设施 | ✅ 已完成 |
-| Phase 2 | 论文管理 | ⏳ 待开始 |
-| Phase 3 | AI 服务 | ⏳ 待开始 |
-| Phase 4 | 实验执行 | ⏳ 待开始 |
+| Phase 2 | 论文管理 | ✅ 已完成 |
+| Phase 3 | AI 服务 | ✅ 已完成 |
+| Phase 4 | 实验执行 | 🔄 进行中 |
 | Phase 5 | 前端 | ⏳ 待开始 |
 | Phase 6 | 完善 | ⏳ 待开始 |
 
@@ -103,12 +103,92 @@
 
 ---
 
-## 下一步：Phase 2 论文管理
+## Phase 2: 论文管理 ✅
+
+**完成时间**：2026-07-28
+
+### M4: PDF 解析服务 ✅
+
+**文件**：`backend/app/services/paper/parser.py`、`backend/app/schemas/paper.py`
+
+**能力**：
+- PyMuPDF 提取全文、标题、作者、摘要、章节、引用
+- 可选 Claude AI 增强（关键词 + 核心贡献）
+- AI 不可用时降级为本地 TF-IDF 规则
+
+**验证**：PDFParser 初始化成功，数据结构完整
+
+### M5: 论文检索/下载 ✅
+
+**文件**：`backend/app/services/paper/downloader.py`
+
+**能力**：
+- `ArxivClient`：arXiv API 搜索 + PDF 下载（3 次重试）
+- `SemanticScholarClient`：Semantic Scholar API 搜索（仅元数据）
+- `FakeSearchClient`：可注入测试替身，离线可用
+- 协议 `PaperSearchClient` 抽象所有人
+
+**验证**：FakeSearchClient 搜索/下载/失败处理全部通过
+
+### M6: 论文库 ✅
+
+**后端文件**：`backend/app/services/paper/library.py`、`backend/app/api/papers.py`
+
+**API 路由**（7 个）：
+- `GET /api/projects/{id}/papers` — 论文列表（支持关键词/来源筛选）
+- `POST /api/projects/{id}/papers/search` — 外部搜索
+- `POST /api/projects/{id}/papers` — 添加论文
+- `GET /api/papers/{id}` — 论文详情
+- `DELETE /api/papers/{id}` — 删除论文
+- `POST /api/papers/{id}/upload` — 手动上传 PDF
+- `GET /api/projects/{id}/papers/keywords` — 关键词分组
+
+**前端文件**：`frontend/src/pages/ReferencePapers.tsx`
+
+**功能**：
+- 论文库列表（标题、作者、关键词标签、下载状态）
+- 搜索 arXiv 并添加到库
+- 手动上传失败的论文 PDF
+- 删除论文
+
+**验证**：TypeScript 类型检查通过，Vite 构建成功
+
+---
+
+## Phase 4: 实验执行 🔄
+
+**完成时间**：2026-07-29
+
+### M10: GitService ✅
+
+**文件清单**：
+- `backend/app/api/git.py` — Git 相关 REST API
+- `backend/app/services/git/service.py` — GitService 核心实现
+- `backend/app/schemas/git.py` — 仓库、分支、提交请求/响应模型
+- `backend/tests/api/test_git.py` — API 集成测试
+- `backend/tests/services/git/` — GitService 单元测试
+
+**能力**：
+- 初始化项目仓库并隔离在项目目录内
+- 创建基于实验节点的分支
+- 提交真实文件变更并返回 commit SHA
+- 查询仓库状态并区分 clean / dirty 工作区
+- 通过 REST API 暴露仓库初始化、分支、提交、状态查询
+
+**验证结果**：
+- ✅ `python -m pytest -v` 通过（15 项）
+- ✅ M10 相关文件的 `ruff check` 通过
+- ✅ API 测试验证仓库初始化、分支创建、提交和状态查询；当前 FastAPI 版本以嵌套 router 形式注册 5 条 repository 路由
+- ⚠️ `ruff check .` 仍报告 51 项既有问题，位于 Alembic、认证、论文、模型和 AI 服务等 M10 范围外文件
+
+---
+
+## 下一步：M11 Docker Executor
 
 待开发模块：
-- M4: PDF 解析（PyMuPDF + Claude API）
-- M5: 论文下载（arxiv API + Semantic Scholar API）
-- M6: 论文库管理
+- M11: Docker Executor
+- M12: Celery 任务
+- M13: 实验监控
 
 ---
 
