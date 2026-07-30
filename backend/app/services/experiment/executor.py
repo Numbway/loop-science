@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.core.config import settings
+
 
 class ExperimentExecutorError(Exception):
     """Raised when an experiment cannot be safely managed."""
@@ -33,14 +35,16 @@ class ExperimentExecutor:
     def __init__(
         self,
         storage_root: Path | str,
-        image: str = "loop-science-executor:latest",
+        image: str | None = None,
         client: Any | None = None,
-        sandbox_mode: bool = False,
+        sandbox_mode: bool | None = None,
     ) -> None:
         self._storage_root = Path(storage_root).resolve()
-        self._image = image
+        self._image = image or settings.EXECUTOR_IMAGE
         self._client = client
-        self._sandbox_mode = sandbox_mode
+        self._sandbox_mode = (
+            settings.EXECUTOR_SANDBOX_MODE if sandbox_mode is None else sandbox_mode
+        )
 
     def _docker_client(self) -> Any:
         if self._client is not None:

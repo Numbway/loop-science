@@ -18,6 +18,11 @@ class FakeContainer:
     def remove(self, *, force: bool) -> None:
         assert force is False
 
+    def logs(self, *, stream: bool, follow: bool):
+        assert stream is True
+        assert follow is True
+        return iter([b"epoch=1\n", b"loss=0.1\n"])
+
 
 class FakeContainers:
     def __init__(self) -> None:
@@ -63,3 +68,14 @@ async def test_executor_rejects_code_outside_storage(tmp_path) -> None:
 
     with pytest.raises(ExperimentExecutorError):
         await executor.run_experiment(uuid.uuid4(), tmp_path.parent, {})
+
+
+@pytest.mark.asyncio
+async def test_executor_streams_logs_and_manages_lifecycle(tmp_path) -> None:
+    experiment_id = uuid.uuid4()
+    executor = ExperimentExecutor(tmp_path, client=FakeClient())
+
+    assert [line async for line in executor.stream_logs(experiment_id)] == ["epoch=1", "loss=0.1"]
+    assert await executor.get_status(experiment_id) == "exited"
+    await executor.stop(experiment_id)
+    await executor.cleanup(experiment_id)

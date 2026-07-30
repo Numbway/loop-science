@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # Storage
     STORAGE_PATH: str = "/data/projects"
 
+    # Experiment executor
+    EXECUTOR_IMAGE: str = "loop-science-executor:latest"
+    EXECUTOR_SANDBOX_MODE: bool = False
+
     # JWT
     JWT_SECRET: str = "dev-secret-change-in-production"
     JWT_ALGORITHM: str = "HS256"
