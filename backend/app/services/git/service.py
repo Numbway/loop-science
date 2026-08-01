@@ -136,7 +136,9 @@ class GitService:
         gitkeep.touch(exist_ok=True)
         repo.index.add([".gitkeep"])
         commit = repo.index.commit("Initial project repository")
-        return RepositoryInfo(current_branch=repo.active_branch.name, head_sha=commit.hexsha)
+        return RepositoryInfo(
+            current_branch=repo.active_branch.name, head_sha=commit.hexsha
+        )
 
     def get_repository_status(self, project_id: uuid.UUID) -> RepositoryStatus:
         repo = self._open_repository(project_id)
@@ -147,6 +149,17 @@ class GitService:
             is_clean=not repo.is_dirty(untracked_files=True),
             branches=branches,
         )
+
+    def get_branch_info(self, project_id: uuid.UUID, branch_name: str) -> BranchInfo:
+        """Return a branch head without changing the active worktree."""
+        repo = self._open_repository(project_id)
+        branch = next((head for head in repo.heads if head.name == branch_name), None)
+        if branch is None:
+            raise BranchNotFoundError(
+                message=f"Branch '{branch_name}' does not exist in this repository.",
+                hint="Choose a branch recorded by an existing experiment node.",
+            )
+        return BranchInfo(name=branch.name, head_sha=branch.commit.hexsha)
 
     def commit_changes(self, project_id: uuid.UUID, message: str) -> CommitInfo:
         repo = self._open_repository(project_id)

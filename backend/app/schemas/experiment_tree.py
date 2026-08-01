@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ExperimentTreeNode(BaseModel):
@@ -39,3 +39,34 @@ class ProjectTreeResponse(BaseModel):
     max_iterations: int
     nodes: list[ExperimentTreeNode]
     updated_at: datetime
+
+
+class BranchPlanCreate(BaseModel):
+    """Three decisions collected by the lightweight branch dialog."""
+
+    focus: Literal["model", "data", "training", "regularization"]
+    approach: str = Field(min_length=8, max_length=600)
+    budget: Literal["quick", "balanced", "thorough"]
+
+    @field_validator("approach")
+    @classmethod
+    def normalize_approach(cls, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 8:
+            raise ValueError("approach must contain at least 8 non-space characters")
+        return normalized
+
+
+class CreatedBranch(BaseModel):
+    """Git lineage created for the new experiment node."""
+
+    name: str
+    head_sha: str
+    parent_head_sha: str
+
+
+class BranchPlanResponse(BaseModel):
+    """New pending experiment plus its concrete Git branch."""
+
+    node: ExperimentTreeNode
+    branch: CreatedBranch

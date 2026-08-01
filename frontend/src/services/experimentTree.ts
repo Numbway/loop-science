@@ -31,11 +31,41 @@ export interface ProjectTree {
   updated_at: string;
 }
 
+export type BranchFocus = "model" | "data" | "training" | "regularization";
+export type BranchBudget = "quick" | "balanced" | "thorough";
+
+export interface BranchPlan {
+  focus: BranchFocus;
+  approach: string;
+  budget: BranchBudget;
+}
+
+export interface CreatedExperimentBranch {
+  node: ExperimentTreeNode;
+  branch: {
+    name: string;
+    head_sha: string;
+    parent_head_sha: string;
+  };
+}
+
 export async function getExperimentTree(
   projectId: string,
 ): Promise<ProjectTree> {
   const response = await api.get<ProjectTree>(
     `/api/projects/${projectId}/tree`,
+  );
+  return response.data;
+}
+
+export async function createExperimentBranch(
+  projectId: string,
+  parentExperimentId: string,
+  plan: BranchPlan,
+): Promise<CreatedExperimentBranch> {
+  const response = await api.post<CreatedExperimentBranch>(
+    `/api/projects/${projectId}/tree/nodes/${parentExperimentId}/branches`,
+    plan,
   );
   return response.data;
 }

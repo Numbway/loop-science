@@ -12,7 +12,8 @@ import {
   ReloadOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ReactFlow, {
@@ -29,10 +30,14 @@ import "reactflow/dist/style.css";
 import ExperimentNodeCard, {
   type ExperimentNodeData,
 } from "../components/experiment-tree/ExperimentNode";
+import BranchDialog from "../components/experiment-tree/BranchDialog";
 import {
+  createExperimentBranch,
   getExperimentTree,
+  type BranchPlan,
   type ExperimentStatus,
   type ExperimentTreeNode,
+  type ProjectTree,
   type ProjectStatus,
 } from "../services/experimentTree";
 import "./ExperimentTree.css";
@@ -185,13 +190,33 @@ function formatDuration(seconds: number | null): string {
   return `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`;
 }
 
+function branchErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+    if (detail && typeof detail === "object") {
+      const gitDetail = detail as { detail?: string; hint?: string };
+      return [gitDetail.detail, gitDetail.hint].filter(Boolean).join(" ");
+    }
+  }
+  return error instanceof Error
+    ? error.message
+    : "无法创建分支，请检查仓库状态后重试。";
+}
+
 export default function ExperimentTreePage() {
   const { projectId = "" } = useParams();
+  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState("");
   const [branchIntent, setBranchIntent] = useState<ExperimentTreeNode | null>(
     null,
   );
   const [reportNotice, setReportNotice] = useState<ExperimentTreeNode | null>(
+    null,
+  );
+  const [creatingBranch, setCreatingBranch] = useState(false);
+  const [branchError, setBranchError] = useState("");
+  const [createdBranch, setCreatedBranch] = useState<ExperimentTreeNode | null>(
     null,
   );
 
@@ -221,6 +246,7 @@ export default function ExperimentTreePage() {
   const showBranchIntent = useCallback((node: ExperimentTreeNode) => {
     setSelectedId(node.id);
     setReportNotice(null);
+    setBranchError("");
     setBranchIntent(node);
   }, []);
 
@@ -257,6 +283,38 @@ export default function ExperimentTreePage() {
       failed: nodes.filter((node) => node.status === "failed").length,
     };
   }, [query.data?.nodes]);
+
+  const createPlannedBranch = async (plan: BranchPlan) => {
+    if (!branchIntent) return;
+    setCreatingBranch(true);
+    setBranchError("");
+    try {
+      const created = await createExperimentBranch(
+        projectId,
+        branchIntent.id,
+        plan,
+      );
+      queryClient.setQueryData<ProjectTree>(
+        ["experiment-tree", projectId],
+        (current) =>
+          current
+            ? {
+                ...current,
+                nodes: [...current.nodes, created.node],
+                updated_at: new Date().toISOString(),
+              }
+            : current,
+      );
+      setSelectedId(created.node.id);
+      setCreatedBranch(created.node);
+      setBranchIntent(null);
+      void query.refetch();
+    } catch (error) {
+      setBranchError(branchErrorMessage(error));
+    } finally {
+      setCreatingBranch(false);
+    }
+  };
 
   if (query.isLoading) {
     return (
@@ -308,6 +366,26 @@ export default function ExperimentTreePage() {
           </button>
         </div>
       </header>
+
+      {createdBranch && (
+        <section className="branch-created-banner" role="status">
+          <BranchesOutlined />
+          <span>
+            <small>BRANCH CREATED</small>
+            <strong>
+              节点 {createdBranch.node_id} 已从父实验分出，Git 分支{" "}
+              <code>{createdBranch.git_branch}</code> 已创建。
+            </strong>
+          </span>
+          <button
+            type="button"
+            aria-label="关闭分支创建提示"
+            onClick={() => setCreatedBranch(null)}
+          >
+            <CloseOutlined />
+          </button>
+        </section>
+      )}
 
       <section className="tree-summary-strip" aria-label="实验统计">
         <div>
@@ -485,21 +563,6 @@ export default function ExperimentTreePage() {
                 </section>
               )}
 
-              {branchIntent?.id === selectedNode.id && (
-                <section className="intent-panel">
-                  <button
-                    type="button"
-                    aria-label="关闭"
-                    onClick={() => setBranchIntent(null)}
-                  >
-                    <CloseOutlined />
-                  </button>
-                  <PlusOutlined />
-                  <strong>父节点已锁定为 {selectedNode.node_id}</strong>
-                  <p>M16 将在这里接入 2–3 问的分支创建向导。</p>
-                </section>
-              )}
-
               {reportNotice?.id === selectedNode.id && (
                 <section className="intent-panel report">
                   <button
@@ -545,6 +608,21 @@ export default function ExperimentTreePage() {
           )}
         </aside>
       </section>
+
+      {branchIntent && (
+        <BranchDialog
+          parent={branchIntent}
+          creating={creatingBranch}
+          error={branchError}
+          onClose={() => {
+            if (!creatingBranch) {
+              setBranchIntent(null);
+              setBranchError("");
+            }
+          }}
+          onCreate={createPlannedBranch}
+        />
+      )}
     </main>
   );
 }

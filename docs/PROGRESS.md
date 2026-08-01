@@ -307,10 +307,39 @@
 
 ---
 
-## 下一步：M16 分支创建对话框
+### M16: 分支创建对话框 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/api/experiment_tree.py` — 从任意父实验创建子节点和真实 Git 分支
+- `backend/app/schemas/experiment_tree.py` — 三项分支计划及创建结果模型
+- `backend/app/services/git/service.py` — 不切换工作区地读取任意父分支 HEAD
+- `frontend/src/components/experiment-tree/BranchDialog.tsx` — 三问分支规划对话框
+- `frontend/src/components/experiment-tree/BranchDialog.css` — 分支提案单视觉与响应式布局
+- `frontend/src/services/experimentTree.ts` — 类型化分支创建 API
+
+**能力**：
+- 从实验树任意节点打开三问向导，依次收集改进对象、具体方案和验证预算
+- 根据父节点深度分配全局唯一的下一实验节点编号
+- 从父实验记录的 Git 分支 HEAD 创建并检出真实 `exp/{node_id}` 分支
+- 继承父实验配置并保存结构化 `branch_plan`，新增节点初始状态为 `pending`
+- 创建成功后立即刷新实验树、选中新节点，并展示明确的分支创建结果
+- Git 冲突、脏工作区和缺失父分支以可操作错误反馈呈现，不覆盖现场
+
+**验证结果**：
+- ✅ 全部后端测试 34 项通过，M16 相关 Ruff 与格式检查通过
+- ✅ 真实临时 Git 仓库验证：任意父分支 HEAD 读取、子分支创建和工作区切换正确
+- ✅ 前端 Prettier、ESLint、TypeScript 生产构建通过
+- ✅ 桌面 1440px 与窄屏 500px 无头浏览器截图完成视觉验收
+- ✅ 修复选项卡自动网格排布导致说明文字挤压为竖排的问题
+
+---
+
+## 下一步：M17 实验详情页
 
 待开发模块：
-- M16: 从任意实验节点发起 2-3 个问题的改进对话，并创建对应 Git 分支
+- M17: 实验详情页，包含头部总结、TensorBoard、AI 诊断与代码变更 Diff
 
 ---
 

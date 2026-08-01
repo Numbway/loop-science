@@ -68,7 +68,28 @@ def test_checkout_branch_switches_existing_branch_from_clean_worktree(tmp_path) 
     assert status.is_clean is True
 
 
-def test_checkout_branch_rejects_dirty_worktree_without_losing_changes(tmp_path) -> None:
+def test_get_branch_info_reads_an_arbitrary_branch_without_checkout(tmp_path) -> None:
+    project_id = uuid.uuid4()
+    service = GitService(tmp_path)
+    initial = service.initialize_project_repository(project_id)
+    service.create_experiment_branch(project_id, "1", initial.head_sha)
+    repository_path = tmp_path / str(project_id) / "git_repo"
+    (repository_path / "experiment.py").write_text("variant = 1\n", encoding="utf-8")
+    experiment_commit = service.commit_changes(project_id, "Add experiment variant")
+    service.checkout_branch(project_id, "main")
+
+    branch = service.get_branch_info(project_id, "exp/1")
+    status = service.get_repository_status(project_id)
+
+    assert branch.name == "exp/1"
+    assert branch.head_sha == experiment_commit.sha
+    assert status.current_branch == "main"
+    assert status.head_sha == initial.head_sha
+
+
+def test_checkout_branch_rejects_dirty_worktree_without_losing_changes(
+    tmp_path,
+) -> None:
     project_id = uuid.uuid4()
     service = GitService(tmp_path)
     initial = service.initialize_project_repository(project_id)
@@ -85,7 +106,9 @@ def test_checkout_branch_rejects_dirty_worktree_without_losing_changes(tmp_path)
     assert dirty_file.read_text(encoding="utf-8") == "pending = True\n"
 
 
-def test_branch_creation_rejects_invalid_node_duplicate_and_unknown_commit(tmp_path) -> None:
+def test_branch_creation_rejects_invalid_node_duplicate_and_unknown_commit(
+    tmp_path,
+) -> None:
     project_id = uuid.uuid4()
     service = GitService(tmp_path)
     initial = service.initialize_project_repository(project_id)
@@ -100,7 +123,9 @@ def test_branch_creation_rejects_invalid_node_duplicate_and_unknown_commit(tmp_p
         service.create_experiment_branch(project_id, "1", initial.head_sha)
 
 
-def test_branch_create_and_checkout_reject_dirty_worktree_without_losing_changes(tmp_path) -> None:
+def test_branch_create_and_checkout_reject_dirty_worktree_without_losing_changes(
+    tmp_path,
+) -> None:
     project_id = uuid.uuid4()
     service = GitService(tmp_path)
     initial = service.initialize_project_repository(project_id)

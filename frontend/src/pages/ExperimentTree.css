@@ -59,6 +59,61 @@
   align-items: center;
 }
 
+.branch-created-banner {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 30px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  color: #168f82;
+  border: 1px solid #a8cdc8;
+  border-left: 4px solid #168f82;
+  background: #e6f2f0;
+}
+
+.branch-created-banner > span {
+  min-width: 0;
+}
+
+.branch-created-banner small {
+  display: block;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.branch-created-banner strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #23374d;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branch-created-banner code {
+  color: #6457d9;
+}
+
+.branch-created-banner button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  cursor: pointer;
+  color: #53736f;
+  border: 1px solid #b7d5d1;
+  background: transparent;
+}
+
+.branch-created-banner button:focus-visible {
+  outline: 3px solid rgba(22, 143, 130, 0.22);
+  outline-offset: 2px;
+}
+
 .project-status,
 .refresh-note {
   display: inline-flex;

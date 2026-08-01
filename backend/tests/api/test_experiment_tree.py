@@ -4,11 +4,16 @@ import uuid
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.api.deps import get_owned_project
+from app.api.experiment_tree import get_tree_git_service
 from app.core.database import get_db
 from app.main import app
+from app.schemas.experiment_tree import BranchPlanCreate
+from app.services.git.service import GitService
 
 
 class FakeScalarResult:
@@ -85,3 +90,81 @@ def test_tree_endpoint_returns_owned_project_in_natural_lineage_order() -> None:
     assert "report_html_path" not in response.text
     assert body["nodes"][1]["status"] == "running"
     assert body["nodes"][2]["metrics"] == {}
+
+
+class BranchFakeSession:
+    def __init__(self, parent, node_ids: list[str]) -> None:
+        self.parent = parent
+        self.node_ids = node_ids
+        self.added = []
+        self.committed = False
+
+    async def scalar(self, _statement):
+        return self.parent
+
+    async def scalars(self, _statement):
+        return FakeScalarResult(self.node_ids)
+
+    def add(self, experiment) -> None:
+        self.added.append(experiment)
+
+    async def commit(self) -> None:
+        self.committed = True
+
+
+def test_branch_dialog_creates_git_branch_and_pending_child_node(tmp_path) -> None:
+    project_id = uuid.uuid4()
+    parent_id = uuid.uuid4()
+    project = SimpleNamespace(id=project_id)
+    parent = make_experiment(
+        "1",
+        None,
+        id=parent_id,
+        git_branch="exp/1",
+        config={"entrypoint": "train.py"},
+    )
+    session = BranchFakeSession(parent, ["1", "2-1"])
+    git_service = GitService(tmp_path)
+    initial = git_service.initialize_project_repository(project_id)
+    git_service.create_experiment_branch(project_id, "1", initial.head_sha)
+    git_service.create_experiment_branch(project_id, "2-1", initial.head_sha)
+
+    app.dependency_overrides[get_owned_project] = lambda: project
+    app.dependency_overrides[get_db] = lambda: session
+    app.dependency_overrides[get_tree_git_service] = lambda: git_service
+
+    try:
+        response = TestClient(app).post(
+            f"/api/projects/{project_id}/tree/nodes/{parent_id}/branches",
+            json={
+                "focus": "training",
+                "approach": "Use cosine decay with a five-epoch warmup",
+                "budget": "balanced",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["node"]["node_id"] == "2-2"
+    assert body["node"]["parent_node_id"] == "1"
+    assert body["node"]["git_branch"] == "exp/2-2"
+    assert body["node"]["status"] == "pending"
+    assert body["node"]["config"]["entrypoint"] == "train.py"
+    assert body["node"]["config"]["branch_plan"]["focus"] == "training"
+    assert body["branch"]["parent_head_sha"] == initial.head_sha
+    assert session.committed is True
+    assert session.added[0].node_id == "2-2"
+    assert git_service.get_repository_status(project_id).current_branch == "exp/2-2"
+
+
+def test_branch_dialog_rejects_an_empty_experiment_approach() -> None:
+    with pytest.raises(ValidationError):
+        BranchPlanCreate.model_validate(
+            {
+                "focus": "model",
+                "approach": "          ",
+                "budget": "quick",
+            }
+        )
