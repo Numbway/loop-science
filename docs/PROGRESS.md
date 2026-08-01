@@ -203,10 +203,31 @@
 
 ---
 
-## 下一步：M12 Celery 任务
+### M12: Celery 任务 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/core/celery_app.py` — Celery/Redis 应用配置
+- `backend/app/tasks/experiment_tasks.py` — 单实验执行与项目迭代任务
+- `backend/tests/tasks/test_experiment_tasks.py` — 停止条件与 eager-mode 任务测试
+
+**能力**：
+- `experiments.run` 从数据库加载实验，切换 Git 分支并启动隔离容器
+- `experiments.iterate` 根据项目状态、迭代上限和目标指标选择并排队实验
+- 执行失败时写回实验 `failed` 状态和完成时间
+- Alembic 统一使用应用的同步数据库连接配置
+
+**验证结果**：
+- ✅ Redis broker 连接成功，两条 Celery 任务注册成功
+- ✅ 全部后端测试 22 项通过，M12 范围 Ruff 通过
+- ✅ Alembic 可连接隔离 PostgreSQL 验证实例
+
+---
+
+## 下一步：M13 实验监控
 
 待开发模块：
-- M12: Celery 任务
 - M13: 实验监控
 
 ---
