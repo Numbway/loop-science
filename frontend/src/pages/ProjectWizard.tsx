@@ -620,8 +620,11 @@ export default function ProjectWizardPage() {
                     <dd>{experimentId}</dd>
                   </div>
                 </dl>
-                <Link className="primary-action link-action" to="/">
-                  返回项目入口
+                <Link
+                  className="primary-action link-action"
+                  to={`/projects/${paper.project_id}/tree`}
+                >
+                  查看实验树
                 </Link>
               </div>
             ) : (

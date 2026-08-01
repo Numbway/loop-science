@@ -12,8 +12,8 @@
 | Phase 1 | 基础设施 | ✅ 已完成 |
 | Phase 2 | 论文管理 | ✅ 已完成 |
 | Phase 3 | AI 服务 | ✅ 已完成 |
-| Phase 4 | 实验执行 | 🔄 进行中 |
-| Phase 5 | 前端 | ⏳ 待开始 |
+| Phase 4 | 实验执行 | ✅ 已完成 |
+| Phase 5 | 前端 | 🔄 进行中 |
 | Phase 6 | 完善 | ⏳ 待开始 |
 
 ---
@@ -278,10 +278,39 @@
 
 ---
 
-## 下一步：M15 实验树可视化
+### M15: 实验树可视化 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/api/experiment_tree.py` — 项目归属校验后的只读实验树 API
+- `backend/app/schemas/experiment_tree.py` — 项目谱系和节点响应模型
+- `backend/tests/api/test_experiment_tree.py` — 自然排序、状态、指标和私有报告路径测试
+- `frontend/src/pages/ExperimentTree.tsx` — React Flow 竖向实验树与节点详情面板
+- `frontend/src/pages/ExperimentTree.css` — 实验谱系图册视觉与桌面/窄屏布局
+- `frontend/src/components/experiment-tree/ExperimentNode.tsx` — 状态化实验节点卡片
+- `frontend/src/services/experimentTree.ts` — 类型化实验树 API 客户端
+
+**能力**：
+- 按父子节点关系计算稳定的竖向分叉布局，并兼容孤立节点和异常环路数据
+- 节点卡片展示状态、accuracy/loss、改进描述、耗时及报告/分支入口
+- 点击节点查看分支、完整指标、实验配置、AI 诊断和创建来源
+- 支持缩放、平移、缩略图、自动适配视口和运行中连线动画
+- 每 5 秒轮询项目实验树，在 M19 WebSocket 接入前提供近实时状态更新
+- 桌面双栏和窄屏单栏响应式布局，支持键盘焦点和减少动画偏好
+
+**验证结果**：
+- ✅ 全部后端测试 31 项通过，M15 相关 Ruff 与格式检查通过
+- ✅ 前端 TypeScript 生产构建与 ESLint 通过
+- ✅ 桌面 1440px 与窄屏 500px 无头浏览器截图完成视觉验收
+- ✅ 修复窄屏单列模式下 React Flow 高度链断裂导致节点不可见的问题
+
+---
+
+## 下一步：M16 分支创建对话框
 
 待开发模块：
-- M15: 实验树可视化
+- M16: 从任意实验节点发起 2-3 个问题的改进对话，并创建对应 Git 分支
 
 ---
 

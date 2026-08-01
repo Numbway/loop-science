@@ -10,6 +10,7 @@ import "./App.css";
 
 const LoginPage = lazy(() => import("./pages/Login"));
 const ProjectWizardPage = lazy(() => import("./pages/ProjectWizard"));
+const ExperimentTreePage = lazy(() => import("./pages/ExperimentTree"));
 
 function App() {
   const { token, user, logout } = useAuthStore();
@@ -64,6 +65,12 @@ function App() {
             path="/projects/new"
             element={
               token ? <ProjectWizardPage /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/projects/:projectId/tree"
+            element={
+              token ? <ExperimentTreePage /> : <Navigate to="/login" replace />
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
