@@ -20,10 +20,15 @@ from app.models.user import User
 from app.schemas.experiment_detail import (
     CodeDiffResponse,
     ExperimentDetailResponse,
+    ExperimentRecovery,
     MetricComparison,
     ReferenceEvidence,
     TensorBoardEmbed,
     TrainingLogEntry,
+)
+from app.services.experiment.error_recovery import (
+    public_experiment_config,
+    recovery_metadata,
 )
 from app.services.git.exceptions import GitServiceError
 from app.services.git.service import GitService
@@ -231,7 +236,12 @@ async def get_experiment_detail(
             project.target_metrics or {},
         ),
         target_metrics=project.target_metrics or {},
-        config=experiment.config or {},
+        config=public_experiment_config(experiment.config),
+        recovery=(
+            ExperimentRecovery.model_validate(metadata)
+            if (metadata := recovery_metadata(experiment.config))
+            else None
+        ),
         diagnosis=experiment.diagnosis,
         code_changes=experiment.code_changes or {},
         code_diff=code_diff,

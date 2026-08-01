@@ -72,7 +72,19 @@ def make_experiment(project_id: uuid.UUID):
         status="completed",
         improvement_description="Use cosine decay with warmup",
         metrics={"accuracy": 0.914, "loss": 0.286},
-        config={"epochs": 120, "scheduler": "cosine"},
+        config={
+            "epochs": 120,
+            "scheduler": "cosine",
+            "_recovery": {
+                "status": "recovered",
+                "category": "cuda_out_of_memory",
+                "attempt": 1,
+                "max_attempts": 1,
+                "message": "The automatic retry completed successfully.",
+                "action": "No further action is required.",
+                "updated_at": "2026-08-01T10:12:04Z",
+            },
+        },
         diagnosis="Convergence improved while validation loss remained stable.",
         code_changes={"train.py": "Add cosine learning-rate scheduler"},
         duration_seconds=3724,
@@ -160,4 +172,7 @@ def test_experiment_detail_returns_metrics_evidence_diff_and_monitoring(
     assert body["recent_logs"][0]["message"].startswith("Epoch 1/2")
     assert body["references"][0]["year"] == 2017
     assert body["report_available"] is True
+    assert body["recovery"]["status"] == "recovered"
+    assert body["recovery"]["category"] == "cuda_out_of_memory"
+    assert "_recovery" not in body["config"]
     assert "/private/reports" not in response.text

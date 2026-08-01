@@ -804,6 +804,82 @@
   color: #c55a45;
 }
 
+.recovery-banner {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  color: #815d1f;
+  border: 1px solid #dbc48e;
+  border-left: 4px solid #c08a2b;
+  background: #f8f0dc;
+}
+
+.recovery-banner.recovered {
+  color: #0e756b;
+  border-color: #a8d4ce;
+  border-left-color: #168f82;
+  background: #e6f4f1;
+}
+
+.recovery-banner.needs_attention {
+  color: #9b4c3f;
+  border-color: #dfb7ae;
+  border-left-color: #c55a45;
+  background: #f8eae7;
+}
+
+.recovery-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid currentColor;
+  font-size: 17px;
+}
+
+.recovery-banner small,
+.recovery-banner strong,
+.recovery-banner p,
+.recovery-banner div > span {
+  display: block;
+}
+
+.recovery-banner small,
+.recovery-banner code {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+
+.recovery-banner strong {
+  margin-top: 3px;
+  color: #24364d;
+  font-size: 12px;
+}
+
+.recovery-banner p {
+  margin: 4px 0 0;
+  color: #53647a;
+  font-size: 10px;
+}
+
+.recovery-banner div > span {
+  margin-top: 4px;
+  color: currentColor;
+  font-size: 9px;
+}
+
+.recovery-banner code {
+  padding: 7px 9px;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  background: rgba(255, 255, 255, 0.45);
+}
+
 .experiment-detail-page a:focus-visible,
 .experiment-detail-page button:focus-visible,
 .detail-config summary:focus-visible {
@@ -848,6 +924,16 @@
 
   .detail-breadcrumb > span:not(:last-of-type) {
     display: none;
+  }
+
+  .recovery-banner {
+    grid-template-columns: 38px minmax(0, 1fr);
+    padding: 13px;
+  }
+
+  .recovery-banner code {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .detail-hero {

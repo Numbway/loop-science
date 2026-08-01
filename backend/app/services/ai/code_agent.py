@@ -145,6 +145,7 @@ class CodeAgent:
 - Save checkpoints to ./checkpoints/
 - TensorBoard logs to ./runs/
 - Support SANDBOX_MODE=true env var to run only 1 batch for validation
+- Read batch_size, learning_rate, and device overrides from EXPERIMENT_CONFIG
 - After writing each file, run run_check to verify syntax
 - Output a summary of all files created and key design decisions."""
 
@@ -522,8 +523,9 @@ class ResearchModel(nn.Module):
 '''
 
 MOCK_TRAIN_PY = '''"""Training loop with TensorBoard logging."""
-import os
 import argparse
+import json
+import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
@@ -587,14 +589,34 @@ def validate(
 
 
 def main():
+    runtime_config = json.loads(os.getenv("EXPERIMENT_CONFIG", "{}"))
+    training_config = runtime_config.get("training", {})
+    if not isinstance(training_config, dict):
+        training_config = {}
+
+    def runtime_value(name, default):
+        return runtime_config.get(name, training_config.get(name, default))
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--epochs", type=int, default=runtime_value("epochs", 10))
+    parser.add_argument(
+        "--batch-size", type=int, default=runtime_value("batch_size", 64)
+    )
+    parser.add_argument(
+        "--lr", type=float, default=runtime_value("learning_rate", 0.001)
+    )
     parser.add_argument("--data-path", type=str, default="./data")
     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    requested_device = runtime_value("device", "auto")
+    device_name = (
+        "cuda"
+        if requested_device == "auto" and torch.cuda.is_available()
+        else "cpu"
+        if requested_device == "auto"
+        else requested_device
+    )
+    device = torch.device(device_name)
     writer = SummaryWriter("./runs")
 
     train_loader, val_loader = get_dataloaders(args.data_path, args.batch_size)

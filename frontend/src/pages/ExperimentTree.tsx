@@ -277,6 +277,7 @@ export default function ExperimentTreePage() {
       if (
         event.type === "experiment_completed" ||
         event.type === "experiment_failed" ||
+        event.type === "experiment_recovery" ||
         event.type === "new_experiment_created" ||
         event.type === "diagnosis_ready"
       ) {

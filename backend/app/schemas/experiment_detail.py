@@ -50,6 +50,23 @@ class CodeDiffResponse(BaseModel):
     unavailable_reason: str | None = None
 
 
+class ExperimentRecovery(BaseModel):
+    status: Literal["retrying", "recovered", "needs_attention"]
+    category: Literal[
+        "cuda_out_of_memory",
+        "cuda_unavailable",
+        "non_finite_metric",
+        "missing_dependency",
+        "disk_full",
+        "runtime_error",
+    ]
+    attempt: int
+    max_attempts: int
+    message: str
+    action: str
+    updated_at: datetime
+
+
 class ExperimentDetailResponse(BaseModel):
     id: uuid.UUID
     project_id: uuid.UUID
@@ -66,6 +83,7 @@ class ExperimentDetailResponse(BaseModel):
     metric_comparisons: list[MetricComparison] = Field(default_factory=list)
     target_metrics: dict[str, float] = Field(default_factory=dict)
     config: dict[str, Any] = Field(default_factory=dict)
+    recovery: ExperimentRecovery | None = None
     diagnosis: str | None = None
     code_changes: dict[str, Any] = Field(default_factory=dict)
     code_diff: CodeDiffResponse

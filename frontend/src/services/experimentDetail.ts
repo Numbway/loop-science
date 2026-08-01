@@ -1,5 +1,6 @@
 import api from "./api";
 import type { ExperimentStatus } from "./experimentTree";
+import type { ExperimentRecovery } from "./realtime";
 
 export interface MetricComparison {
   name: string;
@@ -58,6 +59,7 @@ export interface ExperimentDetail {
   metric_comparisons: MetricComparison[];
   target_metrics: Record<string, number>;
   config: Record<string, unknown>;
+  recovery: ExperimentRecovery | null;
   diagnosis: string | null;
   code_changes: Record<string, unknown>;
   code_diff: CodeDiff;

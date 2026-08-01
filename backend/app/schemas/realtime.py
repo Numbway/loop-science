@@ -15,6 +15,7 @@ RealtimeEventType = Literal[
     "experiment_progress",
     "experiment_completed",
     "experiment_failed",
+    "experiment_recovery",
     "diagnosis_ready",
     "new_experiment_created",
 ]
@@ -36,5 +37,6 @@ class ProjectRealtimeEvent(BaseModel):
     error: str | None = None
     diagnosis: str | None = None
     experiment: dict[str, Any] | None = None
+    recovery: dict[str, Any] | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None

@@ -434,10 +434,47 @@
 
 ---
 
-## 下一步：M20 错误处理
+### M20: 错误处理与自动恢复 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/services/experiment/error_recovery.py` — 故障分类、单次恢复策略、恢复元数据与用户提示
+- `backend/app/tasks/experiment_tasks.py` — 启动/监控失败恢复、容器清理、重试排队、Git 提交和审计日志
+- `backend/app/services/ai/code_agent.py` — 运行时覆盖契约和自动修复能力接入
+- `backend/app/schemas/experiment_detail.py` — 类型化恢复状态响应
+- `backend/app/schemas/realtime.py` — `experiment_recovery` 实时事件
+- `backend/app/api/experiment_detail.py` — 恢复摘要聚合并隐藏内部配置元数据
+- `backend/tests/services/experiment/test_error_recovery.py` — 分类、配置降级、重试上限和保护策略测试
+- `backend/tests/tasks/test_experiment_tasks.py` — 恢复持久化、日志、提交、重排队和成功闭环测试
+- `backend/tests/services/ai/test_code_agent_recovery_config.py` — 生成代码运行时覆盖契约测试
+- `frontend/src/pages/ExperimentDetail.tsx` — 恢复状态、动作建议和尝试次数实时展示
+
+**能力**：
+- 分类 CUDA OOM、GPU 不可用、NaN/Inf、缺失依赖、磁盘满和一般运行时错误
+- OOM 自动减半 batch size，GPU 不可用自动切换 CPU，数值不稳定自动降低 learning rate
+- 每个实验最多自动恢复一次；第二次失败转为人工处理，杜绝无限重试
+- 代码与依赖错误调用 `CodeAgent.fix_runtime_error`，只有形成可提交的 Git 变更后才允许重跑
+- 重试前清理已退出容器，复用稳定容器名；清理失败时停止自动重试并提供操作建议
+- 磁盘满场景禁止自动删除 checkpoint 或实验产物，保护研究证据
+- 恢复检测、采取动作、Git 提交、重排队和最终成功全部写入 `ExperimentLog`
+- 恢复状态通过 Redis/WebSocket 实时推送，详情页同时支持请求刷新后的持久状态
+- 新生成训练脚本从 `EXPERIMENT_CONFIG` 读取 batch size、learning rate 和 device 覆盖，确保降级配置真实生效
+
+**验证结果**：
+- ✅ 全部后端测试 54 项通过，M20 范围 Ruff 检查通过
+- ✅ 前端 M20 Prettier、全量 ESLint 与 TypeScript 生产构建通过
+- ✅ OOM 自动降级、代码修复提交门禁、单次重试上限和成功闭环均有任务级测试覆盖
+- ✅ 桌面 1440px 与窄屏 500px 无头浏览器视觉验收通过
+- ✅ 临时浏览器服务、截图和 M20 pytest 目录已清理
+- ⚠️ 早期 M19 pytest 临时目录受 Windows ACL 限制仍不可删除，保持未跟踪且未纳入提交
+
+---
+
+## 下一步：M21 E2E 测试
 
 待开发模块：
-- M20: 常见实验错误自动恢复、用户友好提示和恢复过程日志
+- M21: 完整流程、分支创建和异常恢复端到端测试，清除 P0 缺陷
 
 ---
 

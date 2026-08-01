@@ -49,6 +49,12 @@ const realtimeLabels: Record<RealtimeConnectionState, string> = {
   offline: "离线轮询",
 };
 
+const recoveryLabels = {
+  retrying: "正在自动恢复",
+  recovered: "已自动恢复",
+  needs_attention: "需要人工处理",
+} as const;
+
 function isPercentMetric(name: string): boolean {
   const normalized = name.toLowerCase();
   return normalized.includes("acc") || normalized.includes("precision");
@@ -166,6 +172,7 @@ export default function ExperimentDetailPage() {
                   };
             }),
             diagnosis: event.diagnosis ?? current.diagnosis,
+            recovery: event.recovery ?? current.recovery,
             started_at: event.started_at ?? current.started_at,
             completed_at: event.completed_at ?? current.completed_at,
           };
@@ -174,6 +181,7 @@ export default function ExperimentDetailPage() {
       if (
         event.type === "experiment_completed" ||
         event.type === "experiment_failed" ||
+        event.type === "experiment_recovery" ||
         event.type === "diagnosis_ready"
       ) {
         void queryClient.invalidateQueries({
@@ -302,6 +310,35 @@ export default function ExperimentDetailPage() {
           {realtimeLabels[realtimeState]}
         </span>
       </nav>
+
+      {detail.recovery && (
+        <section
+          className={`recovery-banner ${detail.recovery.status}`}
+          role={
+            detail.recovery.status === "needs_attention" ? "alert" : "status"
+          }
+          aria-live="polite"
+        >
+          <span className="recovery-icon">
+            {detail.recovery.status === "retrying" ? (
+              <LoadingOutlined spin />
+            ) : detail.recovery.status === "recovered" ? (
+              <CheckCircleOutlined />
+            ) : (
+              <WarningOutlined />
+            )}
+          </span>
+          <div>
+            <small>AUTOMATED RECOVERY / 自动恢复</small>
+            <strong>{recoveryLabels[detail.recovery.status]}</strong>
+            <p>{detail.recovery.message}</p>
+            <span>{detail.recovery.action}</span>
+          </div>
+          <code>
+            ATTEMPT {detail.recovery.attempt} / {detail.recovery.max_attempts}
+          </code>
+        </section>
+      )}
 
       <header className="detail-hero">
         <div className="detail-node-stamp">

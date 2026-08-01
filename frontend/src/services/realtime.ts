@@ -10,8 +10,25 @@ export type ProjectRealtimeEventType =
   | "experiment_progress"
   | "experiment_completed"
   | "experiment_failed"
+  | "experiment_recovery"
   | "diagnosis_ready"
   | "new_experiment_created";
+
+export interface ExperimentRecovery {
+  status: "retrying" | "recovered" | "needs_attention";
+  category:
+    | "cuda_out_of_memory"
+    | "cuda_unavailable"
+    | "non_finite_metric"
+    | "missing_dependency"
+    | "disk_full"
+    | "runtime_error";
+  attempt: number;
+  max_attempts: number;
+  message: string;
+  action: string;
+  updated_at: string;
+}
 
 export interface ProjectRealtimeEvent {
   event_id: string;
@@ -26,6 +43,7 @@ export interface ProjectRealtimeEvent {
   error?: string;
   diagnosis?: string;
   experiment?: ExperimentTreeNode;
+  recovery?: ExperimentRecovery;
   started_at?: string;
   completed_at?: string;
 }

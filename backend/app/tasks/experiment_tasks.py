@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -13,14 +14,19 @@ from app.core.celery_app import celery_app
 from app.core.config import settings
 from app.core.database import async_session_factory
 from app.models.experiment import Experiment
+from app.models.experiment_log import ExperimentLog
 from app.models.project import Project
 from app.schemas.realtime import ProjectRealtimeEvent
+from app.services.ai.code_agent import CodeAgent
 from app.services.experiment import (
+    AutoErrorHandler,
     ExperimentExecutor,
     ExperimentMonitor,
+    RecoveryOutcome,
     parse_train_log,
+    recovery_metadata,
 )
-from app.services.git import GitService
+from app.services.git import GitService, GitServiceError
 from app.services.realtime import RealtimeEventBroker, publish_project_event
 
 
@@ -88,6 +94,162 @@ async def _next_experiment_id(project_id: uuid.UUID) -> str | None:
         return str(pending.id) if pending else None
 
 
+async def _cleanup_container_for_retry(experiment_id: uuid.UUID) -> str | None:
+    """Remove an exited container so its stable experiment name can be reused."""
+    try:
+        await ExperimentExecutor(settings.STORAGE_PATH).cleanup(experiment_id)
+    except Exception as error:  # noqa: BLE001 - Docker SDK boundary
+        detail = f"{type(error).__name__}: {error}"
+        normalized = detail.casefold()
+        if "not found" in normalized or "404" in normalized:
+            return None
+        return type(error).__name__
+    return None
+
+
+async def _attempt_error_recovery(
+    experiment_id: uuid.UUID,
+    error_log: str,
+) -> RecoveryOutcome:
+    """Persist one bounded repair attempt and enqueue a safe retry when possible."""
+    async with async_session_factory() as session:
+        experiment = await session.get(Experiment, experiment_id)
+        if experiment is None:
+            raise LookupError(f"Experiment {experiment_id} does not exist.")
+        project = await session.get(Project, experiment.project_id)
+        if project is None:
+            raise LookupError(f"Project {experiment.project_id} does not exist.")
+
+        git_service = GitService(settings.STORAGE_PATH)
+        repair_agent = None
+        repository_error = ""
+        try:
+            git_service.checkout_branch(project.id, experiment.git_branch)
+            repair_agent = CodeAgent(git_service._repository_path(project.id))
+        except GitServiceError as error:
+            repository_error = f"{error.message} {error.hint}"
+
+        handler = AutoErrorHandler(repair_agent=repair_agent)
+        try:
+            outcome = await handler.handle(error_log[-5_000:], experiment.config)
+        except Exception as error:  # noqa: BLE001 - AI provider boundary
+            fallback = await AutoErrorHandler().handle(
+                error_log[-5_000:],
+                experiment.config,
+            )
+            outcome = fallback.as_unresolved(
+                message="Automatic recovery stopped before a safe fix was validated.",
+                action=(
+                    "Review the recovery log and repair the experiment branch manually. "
+                    f"Internal boundary: {type(error).__name__}."
+                ),
+            )
+
+        if outcome.requires_commit:
+            if repository_error:
+                outcome = outcome.as_unresolved(
+                    message="The repair could not be committed to the experiment branch.",
+                    action=repository_error,
+                )
+            else:
+                try:
+                    commit = git_service.commit_changes(
+                        project.id,
+                        f"Auto-recover experiment {experiment.node_id}",
+                    )
+                except GitServiceError as error:
+                    outcome = outcome.as_unresolved(
+                        message="The repair agent did not leave a committable validated fix.",
+                        action=f"{error.message} {error.hint}",
+                    )
+                else:
+                    outcome = replace(
+                        outcome,
+                        log_messages=(
+                            *outcome.log_messages,
+                            (
+                                "[auto-recovery] Committed validated repair "
+                                f"{commit.sha[:10]} on {commit.branch_name}."
+                            ),
+                        ),
+                    )
+
+        if outcome.retry:
+            cleanup_error = await _cleanup_container_for_retry(experiment.id)
+            if cleanup_error:
+                outcome = outcome.as_unresolved(
+                    message="The failed container could not be prepared for a safe retry.",
+                    action=(
+                        "Remove the stopped container, then retry manually. "
+                        f"Cleanup boundary: {cleanup_error}."
+                    ),
+                )
+
+        experiment.config = outcome.config
+        for message in outcome.log_messages:
+            session.add(
+                ExperimentLog(
+                    experiment_id=experiment.id,
+                    level="warning" if outcome.retry else "error",
+                    message=message,
+                    timestamp=datetime.now(UTC),
+                )
+            )
+        if outcome.retry:
+            experiment.status = "pending"
+            experiment.started_at = None
+            experiment.completed_at = None
+            experiment.duration_seconds = None
+        await session.commit()
+
+    await publish_project_event(
+        ProjectRealtimeEvent(
+            type="experiment_recovery",
+            project_id=project.id,
+            experiment_id=experiment.id,
+            status="pending" if outcome.retry else "failed",
+            recovery=outcome.metadata,
+        )
+    )
+    if outcome.retry:
+        run_experiment_task.delay(str(experiment.id))
+    return outcome
+
+
+async def _mark_recovery_succeeded(
+    experiment_id: uuid.UUID,
+) -> tuple[uuid.UUID, dict[str, Any]] | None:
+    """Close the recovery audit trail after a successful automatic retry."""
+    async with async_session_factory() as session:
+        experiment = await session.get(Experiment, experiment_id)
+        if experiment is None:
+            return None
+        metadata = recovery_metadata(experiment.config)
+        if metadata is None or metadata["status"] != "retrying":
+            return None
+        metadata.update(
+            {
+                "status": "recovered",
+                "message": "The automatic retry completed successfully.",
+                "action": "No further action is required.",
+                "updated_at": datetime.now(UTC).isoformat(),
+            }
+        )
+        config = dict(experiment.config or {})
+        config["_recovery"] = metadata
+        experiment.config = config
+        session.add(
+            ExperimentLog(
+                experiment_id=experiment.id,
+                level="info",
+                message="[auto-recovery] Automatic retry completed successfully.",
+                timestamp=datetime.now(UTC),
+            )
+        )
+        await session.commit()
+        return experiment.project_id, metadata
+
+
 async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
     async with async_session_factory() as session:
         experiment = await session.get(Experiment, experiment_id)
@@ -121,6 +283,7 @@ async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
             experiment.status = "failed"
             experiment.completed_at = datetime.now(UTC)
             await session.commit()
+            error_text = f"Experiment launch failed: {type(error).__name__}: {error}"
             await publish_project_event(
                 ProjectRealtimeEvent(
                     type="experiment_failed",
@@ -128,9 +291,15 @@ async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
                     experiment_id=experiment.id,
                     status="failed",
                     completed_at=experiment.completed_at,
-                    error=f"Experiment launch failed: {type(error).__name__}",
+                    error=error_text,
                 )
             )
+            recovery = await _attempt_error_recovery(experiment.id, error_text)
+            if recovery.retry:
+                return {
+                    "experiment_id": str(experiment.id),
+                    "status": "retrying",
+                }
             raise
         monitor_experiment_task.delay(str(result.experiment_id))
         return {
@@ -171,6 +340,40 @@ async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
     )
     try:
         result = await monitor.monitor_experiment(experiment_id)
+    except Exception as error:
+        error_text = f"Experiment monitoring failed: {type(error).__name__}: {error}"
+        await broker.publish(
+            ProjectRealtimeEvent(
+                type="experiment_failed",
+                project_id=project_id,
+                experiment_id=experiment_id,
+                status="failed",
+                completed_at=datetime.now(UTC),
+                error=error_text,
+            )
+        )
+        recovery = await _attempt_error_recovery(experiment_id, error_text)
+        if recovery.retry:
+            return {
+                "experiment_id": str(experiment_id),
+                "status": "retrying",
+                "recovery": recovery.metadata,
+            }
+        raise
+    else:
+        if result.status == "completed":
+            recovered = await _mark_recovery_succeeded(experiment_id)
+            if recovered is not None:
+                _, recovery = recovered
+                await broker.publish(
+                    ProjectRealtimeEvent(
+                        type="experiment_recovery",
+                        project_id=project_id,
+                        experiment_id=experiment_id,
+                        status="completed",
+                        recovery=recovery,
+                    )
+                )
         event_type = (
             "experiment_completed"
             if result.status == "completed"
@@ -191,19 +394,14 @@ async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
                 ),
             )
         )
-        return result.as_dict()
-    except Exception as error:
-        await broker.publish(
-            ProjectRealtimeEvent(
-                type="experiment_failed",
-                project_id=project_id,
-                experiment_id=experiment_id,
-                status="failed",
-                completed_at=datetime.now(UTC),
-                error=f"Experiment monitoring failed: {type(error).__name__}",
+        response = result.as_dict()
+        if result.status == "failed":
+            error_log = "\n".join(result.anomalies) or (
+                "Experiment container exited without success."
             )
-        )
-        raise
+            recovery = await _attempt_error_recovery(experiment_id, error_log)
+            response["recovery"] = recovery.metadata
+        return response
     finally:
         await broker.close()
 
