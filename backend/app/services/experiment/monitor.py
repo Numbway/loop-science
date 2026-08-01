@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import re
 import uuid
-from collections.abc import AsyncIterator, Iterable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -146,10 +146,12 @@ class ExperimentMonitor:
         *,
         executor: ExperimentExecutor | None = None,
         session_factory: Any = async_session_factory,
+        progress_callback: Callable[[uuid.UUID, str], Awaitable[None]] | None = None,
     ) -> None:
         self._storage_root = Path(storage_root).resolve()
         self._executor = executor or ExperimentExecutor(self._storage_root)
         self._session_factory = session_factory
+        self._progress_callback = progress_callback
 
     def _output_directory(self, experiment_id: uuid.UUID) -> Path:
         output_directory = (
@@ -242,6 +244,8 @@ class ExperimentMonitor:
         """Stream and persist container logs as they arrive."""
         async for line in self._executor.stream_logs(experiment_id):
             await self._persist_log(experiment_id, line)
+            if self._progress_callback is not None:
+                await self._progress_callback(experiment_id, line)
             yield line
 
     async def monitor_experiment(self, experiment_id: uuid.UUID) -> MonitorResult:

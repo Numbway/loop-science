@@ -399,10 +399,45 @@
 
 ---
 
-## 下一步：M19 WebSocket 实时通信
+### M19: WebSocket 实时通信 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/api/websocket.py` — 项目级 WebSocket、JWT 子协议认证、Origin 与归属校验
+- `backend/app/services/realtime/broker.py` — Redis Pub/Sub 跨进程事件代理、心跳和订阅生命周期
+- `backend/app/schemas/realtime.py` — 类型化项目实时事件
+- `backend/app/tasks/experiment_tasks.py` — 启动、训练进度、完成和失败事件发布
+- `backend/app/api/experiment_tree.py` — 新实验分支创建事件发布
+- `backend/tests/api/test_websocket.py` — 连接认证、项目隔离和事件流测试
+- `backend/tests/services/realtime/test_broker.py` — 事件校验、隔离、心跳与故障降级测试
+- `frontend/src/services/realtime.ts` — WebSocket 客户端、指数退避重连和网络状态处理
+- `frontend/src/hooks/useProjectRealtime.ts` — 可复用项目实时订阅 Hook
+- `frontend/src/pages/ExperimentTree.tsx` — 实验树事件合并与离线轮询降级
+- `frontend/src/pages/ExperimentDetail.tsx` — 实验详情状态、指标与诊断即时合并
+
+**能力**：
+- FastAPI 与 Celery 通过 Redis Pub/Sub 共享项目事件，不依赖单进程内存状态
+- 浏览器使用 `Sec-WebSocket-Protocol` 传递 JWT，避免令牌出现在 URL 和访问日志
+- WebSocket 建连前校验 Origin、用户身份和项目归属，使用稳定关闭码区分认证与资源错误
+- 推送实验启动、逐 epoch 指标、完成、失败、诊断和新分支事件
+- 先完成 Redis 订阅再发送 `connected`，消除建连成功后首个事件丢失竞态
+- 前端即时合并增量事件；终态触发完整查询刷新，断线时以 15 秒低频轮询兜底
+- 断线采用 1、2、4、8、15 秒指数退避，并响应浏览器 online/offline 状态
+
+**验证结果**：
+- ✅ 全部后端测试 44 项通过，M19 范围 Ruff 检查通过
+- ✅ 前端 M19 Prettier、全量 ESLint 与 TypeScript 生产构建通过
+- ✅ Docker Redis 真实 Pub/Sub 验证通过，订阅者收到相同事件 ID 和训练指标
+- ✅ FastAPI WebSocket + 真实 Redis 完整链路通过：协商 `bearer` 子协议并收到完成事件
+- ⚠️ 全仓库 Ruff 仍有 43 个早期阶段遗留告警；未混入 M19 提交范围
+
+---
+
+## 下一步：M20 错误处理
 
 待开发模块：
-- M19: 项目级 WebSocket、实验状态变化推送和前端实时更新
+- M20: 常见实验错误自动恢复、用户友好提示和恢复过程日志
 
 ---
 

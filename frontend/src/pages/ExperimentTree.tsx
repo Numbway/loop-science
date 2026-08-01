@@ -31,6 +31,7 @@ import ExperimentNodeCard, {
   type ExperimentNodeData,
 } from "../components/experiment-tree/ExperimentNode";
 import BranchDialog from "../components/experiment-tree/BranchDialog";
+import { useProjectRealtime } from "../hooks/useProjectRealtime";
 import {
   createExperimentBranch,
   getExperimentTree,
@@ -40,6 +41,10 @@ import {
   type ProjectTree,
   type ProjectStatus,
 } from "../services/experimentTree";
+import type {
+  ProjectRealtimeEvent,
+  RealtimeConnectionState,
+} from "../services/realtime";
 import "./ExperimentTree.css";
 
 const nodeTypes: NodeTypes = { experiment: ExperimentNodeCard };
@@ -59,6 +64,45 @@ const projectStatusLabels: Record<ProjectStatus, string> = {
   paused: "已暂停",
   completed: "已完成",
 };
+
+const realtimeStatusLabels: Record<RealtimeConnectionState, string> = {
+  connecting: "连接中",
+  live: "实时同步",
+  reconnecting: "正在重连",
+  offline: "离线轮询",
+};
+
+function applyRealtimeEvent(
+  tree: ProjectTree,
+  event: ProjectRealtimeEvent,
+): ProjectTree {
+  if (event.type === "new_experiment_created" && event.experiment) {
+    const exists = tree.nodes.some((node) => node.id === event.experiment?.id);
+    return {
+      ...tree,
+      nodes: exists ? tree.nodes : [...tree.nodes, event.experiment],
+      updated_at: event.occurred_at,
+    };
+  }
+  if (!event.experiment_id) return tree;
+  return {
+    ...tree,
+    updated_at: event.occurred_at,
+    nodes: tree.nodes.map((node) => {
+      if (node.id !== event.experiment_id) return node;
+      if (event.type === "diagnosis_ready") {
+        return { ...node, diagnosis: event.diagnosis ?? node.diagnosis };
+      }
+      return {
+        ...node,
+        status: event.status ?? node.status,
+        metrics: { ...node.metrics, ...(event.metrics ?? {}) },
+        started_at: event.started_at ?? node.started_at,
+        completed_at: event.completed_at ?? node.completed_at,
+      };
+    }),
+  };
+}
 
 function nodeSortKey(nodeId: string): number[] {
   return nodeId.split("-").map((part) => Number.parseInt(part, 10) || 0);
@@ -217,12 +261,39 @@ export default function ExperimentTreePage() {
   const [createdBranch, setCreatedBranch] = useState<ExperimentTreeNode | null>(
     null,
   );
+  const handleRealtimeEvent = useCallback(
+    (event: ProjectRealtimeEvent) => {
+      if (event.type === "heartbeat") return;
+      if (event.type === "connected") {
+        void queryClient.invalidateQueries({
+          queryKey: ["experiment-tree", projectId],
+        });
+        return;
+      }
+      queryClient.setQueryData<ProjectTree>(
+        ["experiment-tree", projectId],
+        (current) => (current ? applyRealtimeEvent(current, event) : current),
+      );
+      if (
+        event.type === "experiment_completed" ||
+        event.type === "experiment_failed" ||
+        event.type === "new_experiment_created" ||
+        event.type === "diagnosis_ready"
+      ) {
+        void queryClient.invalidateQueries({
+          queryKey: ["experiment-tree", projectId],
+        });
+      }
+    },
+    [projectId, queryClient],
+  );
+  const realtimeState = useProjectRealtime(projectId, handleRealtimeEvent);
 
   const query = useQuery({
     queryKey: ["experiment-tree", projectId],
     queryFn: () => getExperimentTree(projectId),
     enabled: Boolean(projectId),
-    refetchInterval: 5_000,
+    refetchInterval: realtimeState === "live" ? false : 15_000,
   });
 
   useEffect(() => {
@@ -348,9 +419,13 @@ export default function ExperimentTreePage() {
             <i />
             {projectStatusLabels[query.data.status]}
           </span>
-          <span className="refresh-note">
-            {query.isFetching ? <LoadingOutlined spin /> : <AimOutlined />}5
-            秒同步
+          <span className={`refresh-note realtime-${realtimeState}`}>
+            {query.isFetching || realtimeState === "connecting" ? (
+              <LoadingOutlined spin />
+            ) : (
+              <AimOutlined />
+            )}
+            {realtimeStatusLabels[realtimeState]}
           </span>
           <button
             type="button"

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from app.models.experiment import Experiment
-from app.services.experiment import ExperimentResult
+from app.services.experiment import ExperimentResult, MonitorResult
 from app.tasks import experiment_tasks
 from app.tasks.experiment_tasks import (
     iterate_experiment_loop_task,
@@ -102,6 +102,11 @@ async def test_start_experiment_queues_monitor_after_container_launch(
         {"id": project_id, "status": "running"},
     )()
     queued = []
+    published = []
+
+    async def fake_publish(event):
+        published.append(event)
+        return 1
 
     class FakeGitService:
         def __init__(self, _storage):
@@ -127,6 +132,7 @@ async def test_start_experiment_queues_monitor_after_container_launch(
     )
     monkeypatch.setattr(experiment_tasks, "GitService", FakeGitService)
     monkeypatch.setattr(experiment_tasks, "ExperimentExecutor", FakeExecutor)
+    monkeypatch.setattr(experiment_tasks, "publish_project_event", fake_publish)
     monkeypatch.setattr(monitor_experiment_task, "delay", queued.append)
 
     result = await experiment_tasks._start_experiment(experiment_id)
@@ -134,6 +140,79 @@ async def test_start_experiment_queues_monitor_after_container_launch(
     assert result["status"] == "running"
     assert experiment.status == "running"
     assert queued == [str(experiment_id)]
+    assert published[0].type == "experiment_started"
+    assert published[0].project_id == project_id
+
+
+@pytest.mark.asyncio
+async def test_monitor_experiment_publishes_progress_and_completion(
+    monkeypatch,
+) -> None:
+    experiment_id = uuid.uuid4()
+    project_id = uuid.uuid4()
+    experiment = type(
+        "RunningExperiment",
+        (),
+        {"id": experiment_id, "project_id": project_id},
+    )()
+    events = []
+
+    class LookupSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def get(self, _model, _identifier):
+            return experiment
+
+    class FakeBroker:
+        def __init__(self, _redis_url):
+            return None
+
+        async def publish(self, event):
+            events.append(event)
+            return 1
+
+        async def close(self):
+            return None
+
+    class FakeMonitor:
+        def __init__(self, _storage, *, progress_callback):
+            self.progress_callback = progress_callback
+
+        async def monitor_experiment(self, value):
+            await self.progress_callback(
+                value,
+                "Epoch 3/5 accuracy=0.82 loss=0.41",
+            )
+            return MonitorResult(
+                experiment_id=value,
+                status="completed",
+                metrics={"accuracy": 0.9},
+                log_lines=1,
+                anomalies=(),
+            )
+
+    monkeypatch.setattr(
+        experiment_tasks,
+        "async_session_factory",
+        lambda: LookupSession(),
+    )
+    monkeypatch.setattr(experiment_tasks, "RealtimeEventBroker", FakeBroker)
+    monkeypatch.setattr(experiment_tasks, "ExperimentMonitor", FakeMonitor)
+
+    result = await experiment_tasks._monitor_experiment(experiment_id)
+
+    assert result["status"] == "completed"
+    assert [event.type for event in events] == [
+        "experiment_progress",
+        "experiment_completed",
+    ]
+    assert events[0].epoch == 3
+    assert events[0].total_epochs == 5
+    assert events[0].metrics == {"accuracy": 0.82, "loss": 0.41}
 
 
 def test_monitor_task_bridges_to_async_monitor(monkeypatch) -> None:

@@ -109,6 +109,10 @@ async def test_monitor_persists_live_logs_and_final_state(
     experiment_id = uuid.uuid4()
     experiment = FakeExperiment()
     logs = []
+    progress = []
+
+    async def capture_progress(experiment_id, line):
+        progress.append((experiment_id, line))
 
     def session_factory():
         return FakeSession(experiment, logs)
@@ -117,6 +121,7 @@ async def test_monitor_persists_live_logs_and_final_state(
         tmp_path,
         executor=FakeExecutor(),
         session_factory=session_factory,
+        progress_callback=capture_progress,
     )
     monkeypatch.setattr(
         monitor,
@@ -139,3 +144,7 @@ async def test_monitor_persists_live_logs_and_final_state(
     assert experiment.status == "completed"
     assert experiment.metrics == result.metrics
     assert experiment.duration_seconds >= 3
+    assert [line for _experiment_id, line in progress] == [
+        "Epoch 1/2 loss=0.8 accuracy=0.5",
+        "Epoch 2/2 loss=0.3 accuracy=0.9",
+    ]

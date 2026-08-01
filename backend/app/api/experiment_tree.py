@@ -24,8 +24,10 @@ from app.schemas.experiment_tree import (
     ProjectTreeResponse,
 )
 from app.schemas.git import GitErrorResponse
+from app.schemas.realtime import ProjectRealtimeEvent
 from app.services.git.exceptions import GitServiceError, InvalidRepositoryPathError
 from app.services.git.service import GitService
+from app.services.realtime import publish_project_event
 
 router = APIRouter(prefix="/api/projects/{project_id}/tree", tags=["experiment-tree"])
 CHILD_NODE_PATTERN = re.compile(r"^(?P<depth>[1-9][0-9]*)-(?P<index>[1-9][0-9]*)$")
@@ -182,7 +184,7 @@ async def create_planned_branch(
     db.add(experiment)
     await db.commit()
 
-    return BranchPlanResponse(
+    response = BranchPlanResponse(
         node=_tree_node(experiment),
         branch=CreatedBranch(
             name=branch.name,
@@ -190,3 +192,13 @@ async def create_planned_branch(
             parent_head_sha=parent_branch.head_sha,
         ),
     )
+    await publish_project_event(
+        ProjectRealtimeEvent(
+            type="new_experiment_created",
+            project_id=project.id,
+            experiment_id=experiment.id,
+            status="pending",
+            experiment=response.node.model_dump(mode="json"),
+        )
+    )
+    return response

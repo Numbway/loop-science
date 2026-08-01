@@ -135,6 +135,28 @@
   background: #8a9aaf;
 }
 
+.refresh-note.realtime-live {
+  color: #0e756b;
+  border-color: #a7d4ce;
+  background: #e6f4f1;
+}
+
+.refresh-note.realtime-live .anticon {
+  color: var(--atlas-signal);
+}
+
+.refresh-note.realtime-reconnecting {
+  color: #9a6a1f;
+  border-color: #ddc58e;
+  background: #f8f0dc;
+}
+
+.refresh-note.realtime-offline {
+  color: #9b4c3f;
+  border-color: #dfb7ae;
+  background: #f8eae7;
+}
+
 .project-status.running i {
   background: var(--atlas-signal);
   box-shadow: 0 0 0 5px rgba(22, 143, 130, 0.13);

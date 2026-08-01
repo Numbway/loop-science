@@ -24,6 +24,52 @@
   font-size: 9px;
 }
 
+.detail-realtime {
+  display: inline-flex;
+  gap: 6px;
+  min-height: 25px;
+  align-items: center;
+  margin-left: auto;
+  padding: 0 8px;
+  color: #69798e;
+  border: 1px solid var(--detail-line);
+  background: rgba(248, 250, 252, 0.84);
+  font:
+    8px/1 "Cascadia Code",
+    Consolas,
+    monospace;
+}
+
+.detail-realtime i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8d9aae;
+}
+
+.detail-realtime.realtime-live {
+  color: #0e756b;
+  border-color: #add4cf;
+  background: #e6f4f1;
+}
+
+.detail-realtime.realtime-live i {
+  background: #168f82;
+  box-shadow: 0 0 0 4px rgba(22, 143, 130, 0.12);
+}
+
+.detail-realtime.realtime-reconnecting {
+  color: #95651d;
+  border-color: #ddc58e;
+  background: #f8f0dc;
+}
+
+.detail-realtime.realtime-offline {
+  color: #9b4c3f;
+  border-color: #dfb7ae;
+  background: #f8eae7;
+}
+
 .detail-breadcrumb a {
   display: inline-flex;
   gap: 6px;

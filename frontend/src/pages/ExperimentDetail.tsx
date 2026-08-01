@@ -16,17 +16,23 @@ import {
   NodeIndexOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useProjectRealtime } from "../hooks/useProjectRealtime";
 import {
   downloadExperimentReport,
   generateExperimentReport,
   getExperimentReport,
   getExperimentDetail,
+  type ExperimentDetail,
   type MetricComparison,
 } from "../services/experimentDetail";
 import type { ExperimentStatus } from "../services/experimentTree";
+import type {
+  ProjectRealtimeEvent,
+  RealtimeConnectionState,
+} from "../services/realtime";
 import "./ExperimentDetail.css";
 
 const statusLabels: Record<ExperimentStatus, string> = {
@@ -34,6 +40,13 @@ const statusLabels: Record<ExperimentStatus, string> = {
   running: "运行中",
   completed: "已完成",
   failed: "失败",
+};
+
+const realtimeLabels: Record<RealtimeConnectionState, string> = {
+  connecting: "连接实时通道",
+  live: "实时",
+  reconnecting: "重连中",
+  offline: "离线轮询",
 };
 
 function isPercentMetric(name: string): boolean {
@@ -111,6 +124,7 @@ function diffLineClass(line: string): string {
 
 export default function ExperimentDetailPage() {
   const { experimentId = "" } = useParams();
+  const queryClient = useQueryClient();
   const [reportAction, setReportAction] = useState<
     "generate" | "open" | "download" | null
   >(null);
@@ -120,9 +134,68 @@ export default function ExperimentDetailPage() {
     queryKey: ["experiment-detail", experimentId],
     queryFn: () => getExperimentDetail(experimentId),
     enabled: Boolean(experimentId),
-    refetchInterval: (context) =>
-      context.state.data?.status === "running" ? 5_000 : false,
   });
+  const handleRealtimeEvent = useCallback(
+    (event: ProjectRealtimeEvent) => {
+      if (event.type === "heartbeat") return;
+      if (event.type === "connected") {
+        void queryClient.invalidateQueries({
+          queryKey: ["experiment-detail", experimentId],
+        });
+        return;
+      }
+      if (event.experiment_id !== experimentId) return;
+      queryClient.setQueryData<ExperimentDetail>(
+        ["experiment-detail", experimentId],
+        (current) => {
+          if (!current) return current;
+          const eventMetrics = event.metrics ?? {};
+          return {
+            ...current,
+            status: event.status ?? current.status,
+            metrics: { ...current.metrics, ...eventMetrics },
+            metric_comparisons: current.metric_comparisons.map((metric) => {
+              const value = eventMetrics[metric.name];
+              return value === undefined
+                ? metric
+                : {
+                    ...metric,
+                    current: value,
+                    delta:
+                      metric.parent === null ? null : value - metric.parent,
+                  };
+            }),
+            diagnosis: event.diagnosis ?? current.diagnosis,
+            started_at: event.started_at ?? current.started_at,
+            completed_at: event.completed_at ?? current.completed_at,
+          };
+        },
+      );
+      if (
+        event.type === "experiment_completed" ||
+        event.type === "experiment_failed" ||
+        event.type === "diagnosis_ready"
+      ) {
+        void queryClient.invalidateQueries({
+          queryKey: ["experiment-detail", experimentId],
+        });
+      }
+    },
+    [experimentId, queryClient],
+  );
+  const realtimeState = useProjectRealtime(
+    query.data?.project_id ?? "",
+    handleRealtimeEvent,
+  );
+  const refetchDetail = query.refetch;
+
+  useEffect(() => {
+    if (realtimeState === "live" || query.data?.status !== "running") return;
+    const fallbackTimer = window.setInterval(() => {
+      void refetchDetail();
+    }, 15_000);
+    return () => window.clearInterval(fallbackTimer);
+  }, [query.data?.status, realtimeState, refetchDetail]);
 
   const generateReport = async () => {
     setReportAction("generate");
@@ -224,6 +297,10 @@ export default function ExperimentDetailPage() {
         <span>{detail.project_name}</span>
         <span>/</span>
         <strong>节点 {detail.node_id}</strong>
+        <span className={`detail-realtime realtime-${realtimeState}`}>
+          <i />
+          {realtimeLabels[realtimeState]}
+        </span>
       </nav>
 
       <header className="detail-hero">
