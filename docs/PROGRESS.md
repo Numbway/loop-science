@@ -225,10 +225,35 @@
 
 ---
 
-## 下一步：M13 实验监控
+### M13: 实验监控 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/services/experiment/monitor.py` — 实时日志、TensorBoard 指标和最终状态采集
+- `backend/app/tasks/experiment_tasks.py` — `experiments.monitor` 任务与执行任务衔接
+- `executor/runner.py` — 从可写实验输出目录运行训练代码
+- `backend/tests/services/experiment/test_monitor.py` — 日志解析、指标采集和状态持久化测试
+
+**能力**：
+- 容器运行期间逐行采集并持久化标准输出，按 info/warning/error 分类
+- 从 TensorBoard event 文件读取每个 scalar 的最新值和 step
+- 解析 epoch、最新/最佳指标，检测 NaN、Inf、Traceback、OOM 等异常
+- 根据容器退出码写回 completed/failed、metrics、完成时间和运行时长
+- `experiments.run` 启动容器后自动排队 `experiments.monitor`
+
+**验证结果**：
+- ✅ 全部后端测试 27 项通过，M13 范围 Ruff 与格式检查通过
+- ✅ Redis broker 连接成功，`experiments.run`、`experiments.monitor`、`experiments.iterate` 自动注册
+- ✅ 真实无网络 Docker 容器完成三轮 PyTorch 训练，日志被流式读取，输出产物可写
+- ✅ 从真实 TensorBoard event 文件采集 `train/loss` 和 `validation/accuracy` 最新指标
+
+---
+
+## 下一步：Phase 5 / M14 项目创建向导
 
 待开发模块：
-- M13: 实验监控
+- M14: 项目创建向导
 
 ---
 

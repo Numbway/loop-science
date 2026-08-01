@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.database import async_session_factory
 from app.models.experiment import Experiment
 from app.models.project import Project
-from app.services.experiment import ExperimentExecutor
+from app.services.experiment import ExperimentExecutor, ExperimentMonitor
 from app.services.git import GitService
 
 
@@ -30,7 +30,10 @@ def should_continue(
     if project_status != "running" or completed_iterations >= max_iterations:
         return False
     metrics = latest_metrics or {}
-    return not target_metrics or not all(metrics.get(key, float("-inf")) >= value for key, value in target_metrics.items())
+    return not target_metrics or not all(
+        metrics.get(key, float("-inf")) >= value
+        for key, value in target_metrics.items()
+    )
 
 
 async def _next_experiment_id(project_id: uuid.UUID) -> str | None:
@@ -91,7 +94,9 @@ async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
         experiment.started_at = datetime.now(UTC)
         await session.commit()
         try:
-            GitService(settings.STORAGE_PATH).checkout_branch(project.id, experiment.git_branch)
+            GitService(settings.STORAGE_PATH).checkout_branch(
+                project.id, experiment.git_branch
+            )
             result = await ExperimentExecutor(settings.STORAGE_PATH).run_experiment(
                 experiment.id,
                 GitService(settings.STORAGE_PATH)._repository_path(project.id),
@@ -102,13 +107,31 @@ async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
             experiment.completed_at = datetime.now(UTC)
             await session.commit()
             raise
-        return {"experiment_id": str(result.experiment_id), "container_id": result.container_id, "status": result.status}
+        monitor_experiment_task.delay(str(result.experiment_id))
+        return {
+            "experiment_id": str(result.experiment_id),
+            "container_id": result.container_id,
+            "status": result.status,
+        }
+
+
+async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
+    result = await ExperimentMonitor(settings.STORAGE_PATH).monitor_experiment(
+        experiment_id
+    )
+    return result.as_dict()
 
 
 @celery_app.task(name="experiments.run", bind=True)
 def run_experiment_task(self: Any, experiment_id: str) -> dict[str, str]:
     """Schedule one isolated experiment container from a Celery worker."""
     return asyncio.run(_start_experiment(uuid.UUID(experiment_id)))
+
+
+@celery_app.task(name="experiments.monitor")
+def monitor_experiment_task(experiment_id: str) -> dict[str, Any]:
+    """Persist live logs and final metrics until an experiment container exits."""
+    return asyncio.run(_monitor_experiment(uuid.UUID(experiment_id)))
 
 
 @celery_app.task(name="experiments.iterate")
@@ -118,4 +141,8 @@ def iterate_experiment_loop_task(project_id: str) -> dict[str, str]:
     if experiment_id is None:
         return {"project_id": project_id, "status": "stopped"}
     run_experiment_task.delay(experiment_id)
-    return {"project_id": project_id, "experiment_id": experiment_id, "status": "queued"}
+    return {
+        "project_id": project_id,
+        "experiment_id": experiment_id,
+        "status": "queued",
+    }

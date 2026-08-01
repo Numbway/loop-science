@@ -56,10 +56,16 @@ class ExperimentExecutor:
         self._client = docker.from_env()
         return self._client
 
-    def _paths(self, experiment_id: uuid.UUID, code_path: Path | str) -> tuple[Path, Path]:
+    def _paths(
+        self, experiment_id: uuid.UUID, code_path: Path | str
+    ) -> tuple[Path, Path]:
         code_directory = Path(code_path).resolve()
-        if not code_directory.is_dir() or not code_directory.is_relative_to(self._storage_root):
-            raise ExperimentExecutorError("Experiment code must be a directory within storage.")
+        if not code_directory.is_dir() or not code_directory.is_relative_to(
+            self._storage_root
+        ):
+            raise ExperimentExecutorError(
+                "Experiment code must be a directory within storage."
+            )
         output_directory = self._storage_root / "experiment_runs" / str(experiment_id)
         output_directory.mkdir(parents=True, exist_ok=True)
         return code_directory, output_directory
@@ -87,7 +93,9 @@ class ExperimentExecutor:
             },
             environment={"SANDBOX_MODE": "1" if self._sandbox_mode else "0"},
         )
-        return ExperimentResult(experiment_id, container.id, container.status, output_directory)
+        return ExperimentResult(
+            experiment_id, container.id, container.status, output_directory
+        )
 
     async def get_status(self, experiment_id: uuid.UUID) -> str:
         container = await asyncio.to_thread(
@@ -95,6 +103,15 @@ class ExperimentExecutor:
         )
         await asyncio.to_thread(container.reload)
         return str(container.status)
+
+    async def get_exit_code(self, experiment_id: uuid.UUID) -> int | None:
+        """Return the process exit code once Docker has reported it."""
+        container = await asyncio.to_thread(
+            self._docker_client().containers.get, f"rc-experiment-{experiment_id}"
+        )
+        await asyncio.to_thread(container.reload)
+        exit_code = container.attrs.get("State", {}).get("ExitCode")
+        return int(exit_code) if exit_code is not None else None
 
     async def stream_logs(self, experiment_id: uuid.UUID) -> AsyncIterator[str]:
         container = await asyncio.to_thread(
