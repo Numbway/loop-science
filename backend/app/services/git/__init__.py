@@ -12,6 +12,7 @@ from app.services.git.exceptions import (
     RepositoryNotFoundError,
 )
 from app.services.git.service import (
+    BranchDiff,
     BranchInfo,
     GitService,
     RepositoryInfo,
@@ -20,6 +21,7 @@ from app.services.git.service import (
 
 __all__ = [
     "BranchAlreadyExistsError",
+    "BranchDiff",
     "BranchInfo",
     "BranchNotFoundError",
     "DirtyWorkingTreeError",

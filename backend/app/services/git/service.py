@@ -42,6 +42,17 @@ class BranchInfo:
 
 
 @dataclass(frozen=True)
+class BranchDiff:
+    base_branch: str
+    target_branch: str
+    files: list[str]
+    patch: str
+    insertions: int
+    deletions: int
+    truncated: bool
+
+
+@dataclass(frozen=True)
 class CommitInfo:
     sha: str
     summary: str
@@ -160,6 +171,59 @@ class GitService:
                 hint="Choose a branch recorded by an existing experiment node.",
             )
         return BranchInfo(name=branch.name, head_sha=branch.commit.hexsha)
+
+    def compare_branches(
+        self,
+        project_id: uuid.UUID,
+        base_branch: str,
+        target_branch: str,
+        *,
+        max_patch_characters: int = 200_000,
+    ) -> BranchDiff:
+        """Return a bounded unified diff without checking out either branch."""
+        repo = self._open_repository(project_id)
+        known_branches = {branch.name for branch in repo.heads}
+        for branch_name in (base_branch, target_branch):
+            if branch_name not in known_branches:
+                raise BranchNotFoundError(
+                    message=f"Branch '{branch_name}' does not exist in this repository.",
+                    hint="Use branches recorded by the experiment lineage.",
+                )
+
+        patch = repo.git.diff(
+            "--no-ext-diff",
+            "--unified=3",
+            base_branch,
+            target_branch,
+            "--",
+        )
+        numstat = repo.git.diff("--numstat", base_branch, target_branch, "--")
+        files: list[str] = []
+        insertions = 0
+        deletions = 0
+        for line in numstat.splitlines():
+            added, removed, file_name = line.split("\t", maxsplit=2)
+            files.append(file_name)
+            if added.isdigit():
+                insertions += int(added)
+            if removed.isdigit():
+                deletions += int(removed)
+
+        truncated = len(patch) > max_patch_characters
+        if truncated:
+            patch = (
+                patch[:max_patch_characters]
+                + "\n\n... diff truncated by the experiment detail API ...\n"
+            )
+        return BranchDiff(
+            base_branch=base_branch,
+            target_branch=target_branch,
+            files=files,
+            patch=patch,
+            insertions=insertions,
+            deletions=deletions,
+            truncated=truncated,
+        )
 
     def commit_changes(self, project_id: uuid.UUID, message: str) -> CommitInfo:
         repo = self._open_repository(project_id)

@@ -87,6 +87,40 @@ def test_get_branch_info_reads_an_arbitrary_branch_without_checkout(tmp_path) ->
     assert status.head_sha == initial.head_sha
 
 
+def test_compare_branches_returns_bounded_diff_without_checkout(tmp_path) -> None:
+    project_id = uuid.uuid4()
+    service = GitService(tmp_path)
+    initial = service.initialize_project_repository(project_id)
+    repository_path = tmp_path / str(project_id) / "git_repo"
+
+    service.create_experiment_branch(project_id, "1", initial.head_sha)
+    train_file = repository_path / "train.py"
+    train_file.write_text("learning_rate = 0.1\n", encoding="utf-8")
+    parent_commit = service.commit_changes(project_id, "Add baseline training")
+
+    service.create_experiment_branch(project_id, "2-1", parent_commit.sha)
+    train_file.write_text(
+        "learning_rate = 0.01\nscheduler = 'cosine'\n",
+        encoding="utf-8",
+    )
+    service.commit_changes(project_id, "Use cosine scheduling")
+
+    branch_diff = service.compare_branches(
+        project_id,
+        "exp/1",
+        "exp/2-1",
+    )
+    status = service.get_repository_status(project_id)
+
+    assert branch_diff.files == ["train.py"]
+    assert branch_diff.insertions == 2
+    assert branch_diff.deletions == 1
+    assert "-learning_rate = 0.1" in branch_diff.patch
+    assert "+scheduler = 'cosine'" in branch_diff.patch
+    assert branch_diff.truncated is False
+    assert status.current_branch == "exp/2-1"
+
+
 def test_checkout_branch_rejects_dirty_worktree_without_losing_changes(
     tmp_path,
 ) -> None:

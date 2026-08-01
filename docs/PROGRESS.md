@@ -336,10 +336,40 @@
 
 ---
 
-## 下一步：M17 实验详情页
+### M17: 实验详情页 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/api/experiment_detail.py` — 用户归属校验后的实验详情聚合 API
+- `backend/app/schemas/experiment_detail.py` — 指标、训练日志、参考依据、监控与代码差异响应模型
+- `backend/app/services/git/service.py` — 父子实验分支只读比较与统计
+- `backend/tests/api/test_experiment_detail.py` — 实验档案、路径隔离与 TensorBoard 配置测试
+- `frontend/src/pages/ExperimentDetail.tsx` — 实验检验档案详情页
+- `frontend/src/pages/ExperimentDetail.css` — 证据标尺、双栏布局与窄屏重排
+- `frontend/src/services/experimentDetail.ts` — 类型化实验详情 API 客户端
+
+**能力**：
+- 从实验树节点直接进入 `/experiments/{id}`，并返回所属项目实验树
+- 聚合头部总结、父子指标对照、目标指标、运行档案、训练日志和参考论文
+- 检测 TensorBoard event 文件；配置 `TENSORBOARD_PUBLIC_URL` 后安全嵌入实验监控界面
+- 使用真实 Git 分支生成统一格式 Diff、文件列表和增删统计，全程不切换工作区
+- 展示 AI 诊断、参考依据、实验配置，并仅报告 M18 HTML 报告是否已存在
+- 后端响应不暴露存储根目录、event 文件和私有报告的主机路径
+
+**验证结果**：
+- ✅ 全部后端测试 36 项通过，M17 相关 Ruff 与格式检查通过
+- ✅ 真实临时 Git 仓库验证父子分支 Diff、文件统计及工作区不切换
+- ✅ 前端 Prettier、ESLint、TypeScript 生产构建通过
+- ✅ 桌面 1440px 与窄屏 500px 无头浏览器截图完成视觉验收
+- ✅ TensorBoard iframe、指标正负语义、训练日志与逐行代码 Diff 均完成模拟数据验收
+
+---
+
+## 下一步：M18 HTML 报告生成
 
 待开发模块：
-- M17: 实验详情页，包含头部总结、TensorBoard、AI 诊断与代码变更 Diff
+- M18: 使用 Jinja2 生成包含 7 大 section、可独立打开的实验 HTML 报告
 
 ---
 

@@ -15,7 +15,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -79,7 +79,7 @@ function buildLayout(
   selectedId: string,
   onSelect: (node: ExperimentTreeNode) => void,
   onBranchIntent: (node: ExperimentTreeNode) => void,
-  onReportIntent: (node: ExperimentTreeNode) => void,
+  onDetailIntent: (node: ExperimentTreeNode) => void,
 ): { nodes: Node<ExperimentNodeData>[]; edges: Edge[] } {
   const byNodeId = new Map(experiments.map((node) => [node.node_id, node]));
   const children = new Map<string | null, ExperimentTreeNode[]>();
@@ -144,7 +144,7 @@ function buildLayout(
           experiment,
           onSelect,
           onBranchIntent,
-          onReportIntent,
+          onDetailIntent,
         },
       };
     }),
@@ -206,12 +206,10 @@ function branchErrorMessage(error: unknown): string {
 
 export default function ExperimentTreePage() {
   const { projectId = "" } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState("");
   const [branchIntent, setBranchIntent] = useState<ExperimentTreeNode | null>(
-    null,
-  );
-  const [reportNotice, setReportNotice] = useState<ExperimentTreeNode | null>(
     null,
   );
   const [creatingBranch, setCreatingBranch] = useState(false);
@@ -240,21 +238,20 @@ export default function ExperimentTreePage() {
   const selectNode = useCallback((node: ExperimentTreeNode) => {
     setSelectedId(node.id);
     setBranchIntent(null);
-    setReportNotice(null);
   }, []);
 
   const showBranchIntent = useCallback((node: ExperimentTreeNode) => {
     setSelectedId(node.id);
-    setReportNotice(null);
     setBranchError("");
     setBranchIntent(node);
   }, []);
 
-  const showReportIntent = useCallback((node: ExperimentTreeNode) => {
-    setSelectedId(node.id);
-    setBranchIntent(null);
-    setReportNotice(node);
-  }, []);
+  const openExperimentDetail = useCallback(
+    (node: ExperimentTreeNode) => {
+      navigate(`/experiments/${node.id}`);
+    },
+    [navigate],
+  );
 
   const layout = useMemo(
     () =>
@@ -263,14 +260,14 @@ export default function ExperimentTreePage() {
         selectedId,
         selectNode,
         showBranchIntent,
-        showReportIntent,
+        openExperimentDetail,
       ),
     [
       query.data?.nodes,
       selectedId,
       selectNode,
       showBranchIntent,
-      showReportIntent,
+      openExperimentDetail,
     ],
   );
 
@@ -563,32 +560,13 @@ export default function ExperimentTreePage() {
                 </section>
               )}
 
-              {reportNotice?.id === selectedNode.id && (
-                <section className="intent-panel report">
-                  <button
-                    type="button"
-                    aria-label="关闭"
-                    onClick={() => setReportNotice(null)}
-                  >
-                    <CloseOutlined />
-                  </button>
-                  <FileTextOutlined />
-                  <strong>
-                    {selectedNode.report_available
-                      ? "报告文件已生成"
-                      : "该节点尚无报告"}
-                  </strong>
-                  <p>M17/M18 将接入完整详情与独立 HTML 报告。</p>
-                </section>
-              )}
-
               <div className="inspector-actions">
                 <button
                   type="button"
-                  onClick={() => showReportIntent(selectedNode)}
+                  onClick={() => openExperimentDetail(selectedNode)}
                 >
                   <FileTextOutlined />
-                  报告状态
+                  实验详情
                 </button>
                 <button
                   type="button"

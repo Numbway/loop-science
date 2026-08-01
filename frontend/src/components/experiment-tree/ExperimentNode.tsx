@@ -16,7 +16,7 @@ export interface ExperimentNodeData {
   experiment: ExperimentTreeNode;
   onSelect: (experiment: ExperimentTreeNode) => void;
   onBranchIntent: (experiment: ExperimentTreeNode) => void;
-  onReportIntent: (experiment: ExperimentTreeNode) => void;
+  onDetailIntent: (experiment: ExperimentTreeNode) => void;
 }
 
 const statusLabels: Record<ExperimentStatus, string> = {
@@ -111,10 +111,10 @@ export default function ExperimentNodeCard({
         <div>
           <button
             type="button"
-            title="查看报告状态"
+            title="查看实验详情"
             onClick={(event) => {
               event.stopPropagation();
-              data.onReportIntent(experiment);
+              data.onDetailIntent(experiment);
             }}
           >
             <FileTextOutlined />
