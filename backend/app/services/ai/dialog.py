@@ -83,6 +83,13 @@ class BrainstormDialog:
             paper_summary=paper_summary,
             history=[],
         )
+        if isinstance(first_question, DialogQuestion):
+            self._sessions[session_id].append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(first_question.model_dump()),
+                }
+            )
 
         return {
             "session_id": session_id,
@@ -114,9 +121,7 @@ class BrainstormDialog:
         if self._is_mock:
             return self._mock_question(asked_count, history)
 
-        return await self._real_question(
-            paper_summary, history, remaining, asked_count
-        )
+        return await self._real_question(paper_summary, history, remaining, asked_count)
 
     async def answer(
         self,
@@ -143,10 +148,12 @@ class BrainstormDialog:
         result = await self.next_question(session_id, paper_summary, history)
 
         if isinstance(result, DialogQuestion):
-            history.append({
-                "role": "assistant",
-                "content": json.dumps(result.model_dump()),
-            })
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(result.model_dump()),
+                }
+            )
 
         return result
 
@@ -171,10 +178,12 @@ class BrainstormDialog:
         ]
 
         if not messages:
-            messages = [{
-                "role": "user",
-                "content": f"I want to reproduce this paper. Paper summary: {paper_summary}",
-            }]
+            messages = [
+                {
+                    "role": "user",
+                    "content": f"I want to reproduce this paper. Paper summary: {paper_summary}",
+                }
+            ]
 
         try:
             response = self._client.messages.create(
@@ -187,10 +196,10 @@ class BrainstormDialog:
             text = response.content[0].text
             return self._parse_question(text)
 
-        except Exception as e:
-            logger.error(f"Dialog API call failed: {e}")
+        except Exception:
+            logger.exception("Dialog API call failed")
             return DialogQuestion(
-                question=f"Could you tell me more about your improvement goals?",
+                question="Could you tell me more about your improvement goals?",
                 type="text",
             )
 
@@ -221,11 +230,7 @@ class BrainstormDialog:
 
     def _finalize(self, history: list[dict]) -> ProjectConfig:
         """Build the final project configuration from conversation history."""
-        user_answers = [
-            h["content"]
-            for h in history
-            if h.get("role") == "user"
-        ]
+        user_answers = [h["content"] for h in history if h.get("role") == "user"]
 
         return ProjectConfig(
             improvement_targets=["model", "data", "training"],
@@ -249,7 +254,13 @@ class BrainstormDialog:
             ),
             DialogQuestion(
                 question="你想改进哪些方面？",
-                options=["数据增强/预处理", "模型架构", "训练策略/超参数", "损失函数/优化器", "其他"],
+                options=[
+                    "数据增强/预处理",
+                    "模型架构",
+                    "训练策略/超参数",
+                    "损失函数/优化器",
+                    "其他",
+                ],
                 type="multi",
             ),
             DialogQuestion(

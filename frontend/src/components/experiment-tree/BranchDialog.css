@@ -1,0 +1,580 @@
+.branch-dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  padding: 28px;
+  place-items: center;
+  background: rgba(14, 27, 49, 0.62);
+  backdrop-filter: blur(5px);
+  animation: branch-backdrop-in 160ms ease-out;
+}
+
+.branch-dialog {
+  width: min(900px, 100%);
+  overflow: hidden;
+  color: #16243d;
+  border: 1px solid #aebed0;
+  background: #f7f9fc;
+  box-shadow: 0 36px 90px rgba(8, 20, 41, 0.34);
+  animation: branch-dialog-in 200ms ease-out;
+}
+
+.branch-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 27px 19px;
+  border-bottom: 1px solid #c6d1dd;
+}
+
+.branch-dialog-header span,
+.branch-step-rail small,
+.question-index,
+.branch-plan-summary small {
+  color: #168f82;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.branch-dialog-header h2 {
+  margin: 6px 0 0;
+  font-family:
+    "Aptos Display", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.branch-dialog-header > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  cursor: pointer;
+  color: #53667e;
+  border: 1px solid #c4d0dc;
+  background: transparent;
+}
+
+.branch-graft-line {
+  display: grid;
+  grid-template-columns: minmax(130px, auto) minmax(90px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 27px;
+  color: #687b93;
+  border-bottom: 1px solid #d3dce6;
+  background: #eaf0f6;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+}
+
+.branch-graft-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branch-graft-line i {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg, #6457d9, #168f82);
+}
+
+.branch-graft-line i::after {
+  position: absolute;
+  top: -4px;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #168f82;
+  box-shadow: 0 0 0 4px rgba(22, 143, 130, 0.14);
+  content: "";
+}
+
+.branch-graft-line strong {
+  color: #168f82;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.branch-dialog-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  min-height: 410px;
+}
+
+.branch-step-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 32px 24px;
+  list-style: none;
+  border-right: 1px solid #cbd6e1;
+  background: #eef3f8;
+}
+
+.branch-step-rail li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 11px;
+  min-height: 88px;
+  color: #8493a7;
+}
+
+.branch-step-rail li::after {
+  position: absolute;
+  top: 30px;
+  bottom: 0;
+  left: 14px;
+  width: 1px;
+  background: #c6d1dd;
+  content: "";
+}
+
+.branch-step-rail li:last-child::after {
+  display: none;
+}
+
+.branch-step-rail li > span {
+  z-index: 1;
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1px solid #b9c6d4;
+  background: #eef3f8;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+}
+
+.branch-step-rail li > div {
+  padding-top: 1px;
+}
+
+.branch-step-rail strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.branch-step-rail li.active,
+.branch-step-rail li.done {
+  color: #16243d;
+}
+
+.branch-step-rail li.active > span {
+  color: white;
+  border-color: #6457d9;
+  background: #6457d9;
+}
+
+.branch-step-rail li.done > span {
+  color: white;
+  border-color: #168f82;
+  background: #168f82;
+}
+
+.branch-question {
+  padding: 30px 34px 26px;
+}
+
+.branch-question h3 {
+  margin: 8px 0 6px;
+  font-family:
+    "Aptos Display", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.branch-question > p {
+  margin: 0 0 23px;
+  color: #60738b;
+  font-size: 11px;
+}
+
+.branch-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.branch-choice-grid button,
+.budget-choice-list button {
+  position: relative;
+  cursor: pointer;
+  color: #263852;
+  border: 1px solid #c4d0dc;
+  background: #fbfcfe;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.branch-choice-grid button {
+  display: grid;
+  grid-template-columns: 42px 1fr 22px;
+  grid-template-rows: auto auto;
+  padding: 15px;
+}
+
+.branch-choice-grid button > span {
+  grid-row: 1 / 3;
+  align-self: center;
+  color: #6457d9;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.branch-choice-grid button strong {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 12px;
+}
+
+.branch-choice-grid button small,
+.budget-choice-list button small {
+  margin-top: 4px;
+  color: #6c7e94;
+  font-size: 9px;
+}
+
+.branch-choice-grid button small {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.branch-choice-grid button > i,
+.budget-choice-list button > i {
+  display: grid;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  color: white;
+  border: 1px solid #ccd6e1;
+  font-size: 9px;
+}
+
+.branch-choice-grid button > i {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+.branch-choice-grid button.selected,
+.budget-choice-list button.selected {
+  border-color: #6457d9;
+  background: rgba(100, 87, 217, 0.055);
+  box-shadow: inset 3px 0 0 #6457d9;
+}
+
+.branch-choice-grid button.selected > i,
+.budget-choice-list button.selected > i {
+  border-color: #6457d9;
+  background: #6457d9;
+}
+
+.branch-approach-field {
+  display: block;
+  padding: 13px 15px 11px;
+  border: 1px solid #c2cfdb;
+  background: #fbfcfe;
+}
+
+.branch-approach-field > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #53677f;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.branch-approach-field textarea {
+  width: 100%;
+  padding: 0;
+  resize: vertical;
+  color: #172640;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font:
+    12px/1.65 "Segoe UI Variable Text",
+    "Microsoft YaHei",
+    sans-serif;
+}
+
+.branch-approach-field > small {
+  display: block;
+  padding-top: 8px;
+  color: #7a899c;
+  border-top: 1px solid #dbe2ea;
+  font-size: 9px;
+  text-align: right;
+}
+
+.branch-approach-field:focus-within {
+  border-color: #6457d9;
+  box-shadow: 0 0 0 3px rgba(100, 87, 217, 0.1);
+}
+
+.budget-choice-list {
+  display: grid;
+  gap: 8px;
+}
+
+.budget-choice-list button {
+  display: grid;
+  grid-template-columns: 42px 1fr 22px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 15px;
+}
+
+.budget-choice-list button > span {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  color: #168f82;
+  border: 1px solid #9fc9c4;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.budget-choice-list button strong,
+.budget-choice-list button small {
+  display: block;
+}
+
+.branch-plan-summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px 14px;
+  color: #168f82;
+  border-left: 3px solid #168f82;
+  background: #e7f3f1;
+}
+
+.branch-plan-summary > span {
+  min-width: 0;
+}
+
+.branch-plan-summary strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #25374e;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branch-dialog-error {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 11px 13px;
+  color: #a34536;
+  border: 1px solid #dfb7af;
+  background: #faece9;
+  font-size: 10px;
+}
+
+.branch-dialog-error span,
+.branch-dialog-error strong {
+  display: block;
+}
+
+.branch-dialog-error strong {
+  margin-bottom: 2px;
+}
+
+.branch-dialog-footer {
+  display: grid;
+  grid-template-columns: 140px 1fr 180px;
+  align-items: center;
+  min-height: 68px;
+  padding: 0 27px;
+  border-top: 1px solid #c6d1dd;
+  background: #f1f5f9;
+}
+
+.branch-dialog-footer > span {
+  color: #718198;
+  font-size: 9px;
+  text-align: center;
+}
+
+.branch-dialog-footer code {
+  color: #6457d9;
+}
+
+.branch-dialog-footer button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.branch-back {
+  justify-self: start;
+  padding: 0;
+  color: #586b83;
+  border: 0;
+  background: transparent;
+}
+
+.branch-next,
+.branch-create {
+  justify-self: stretch;
+  color: white;
+  border: 1px solid #6457d9;
+  background: #6457d9;
+}
+
+.branch-create {
+  border-color: #168f82;
+  background: #168f82;
+}
+
+.branch-dialog button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.branch-dialog button:focus-visible {
+  outline: 3px solid rgba(100, 87, 217, 0.28);
+  outline-offset: 2px;
+}
+
+.branch-choice-grid button:not(:disabled):hover,
+.budget-choice-list button:not(:disabled):hover {
+  border-color: #6457d9;
+  transform: translateY(-1px);
+}
+
+@keyframes branch-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes branch-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (max-width: 680px) {
+  .branch-dialog-backdrop {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .branch-dialog {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-y: auto;
+    border: 0;
+  }
+
+  .branch-dialog-header {
+    padding: 20px 18px 16px;
+  }
+
+  .branch-dialog-header h2 {
+    font-size: 21px;
+  }
+
+  .branch-graft-line {
+    padding-inline: 18px;
+  }
+
+  .branch-dialog-body {
+    display: block;
+  }
+
+  .branch-step-rail {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 15px 18px;
+    border-right: 0;
+    border-bottom: 1px solid #cbd6e1;
+  }
+
+  .branch-step-rail li {
+    grid-template-columns: 26px 1fr;
+    gap: 7px;
+    min-height: 0;
+  }
+
+  .branch-step-rail li::after {
+    display: none;
+  }
+
+  .branch-step-rail li > span {
+    width: 25px;
+    height: 25px;
+  }
+
+  .branch-step-rail small {
+    display: none;
+  }
+
+  .branch-step-rail strong {
+    font-size: 9px;
+  }
+
+  .branch-question {
+    min-height: 430px;
+    padding: 24px 18px;
+  }
+
+  .branch-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .branch-dialog-footer {
+    position: sticky;
+    bottom: 0;
+    grid-template-columns: 90px 1fr;
+    gap: 12px;
+    padding: 12px 18px;
+  }
+
+  .branch-dialog-footer > span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .branch-dialog-backdrop,
+  .branch-dialog {
+    animation: none;
+  }
+
+  .branch-choice-grid button,
+  .budget-choice-list button {
+    transition: none;
+  }
+}

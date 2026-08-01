@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Tabs, message, Typography } from 'antd';
-import { MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
-import { useAuthStore } from '../store/auth';
-
-const { Title } = Typography;
+import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
+import { Button, Form, Input, Tabs, message } from "antd";
+import { useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/auth";
+import "./Login.css";
 
 interface LoginFormData {
   email: string;
@@ -19,24 +18,28 @@ interface RegisterFormData {
 }
 
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState<string>('login');
-  const { login, register, isLoading } = useAuthStore();
+  const [activeTab, setActiveTab] = useState("login");
+  const { login, register, isLoading, token } = useAuthStore();
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
 
+  if (token) {
+    return <Navigate to="/projects/new" replace />;
+  }
+
   const handleLogin = async (values: LoginFormData) => {
     try {
-      await login({ email: values.email, password: values.password });
-      messageApi.success('登录成功！');
-      navigate('/');
+      await login(values);
+      messageApi.success("已登录");
+      navigate("/projects/new");
     } catch {
-      messageApi.error('登录失败，请检查邮箱和密码');
+      messageApi.error("邮箱或密码不正确。");
     }
   };
 
   const handleRegister = async (values: RegisterFormData) => {
     if (values.password !== values.confirmPassword) {
-      messageApi.error('两次密码不一致');
+      messageApi.error("两次输入的密码不一致。");
       return;
     }
     try {
@@ -45,121 +48,128 @@ export default function LoginPage() {
         email: values.email,
         password: values.password,
       });
-      messageApi.success('注册成功！');
-      navigate('/');
+      messageApi.success("账号已创建");
+      navigate("/projects/new");
     } catch {
-      messageApi.error('注册失败，请重试');
+      messageApi.error("账号未创建，请检查邮箱后重试。");
     }
   };
 
-  const tabItems = [
+  const items = [
     {
-      key: 'login',
-      label: '登录',
+      key: "login",
+      label: "登录",
       children: (
         <Form onFinish={handleLogin} layout="vertical" size="large">
           <Form.Item
             name="email"
+            label="邮箱"
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
+              { required: true, message: "请输入邮箱。" },
+              { type: "email", message: "邮箱格式不正确。" },
             ]}
           >
-            <Input prefix={<MailOutlined />} placeholder="邮箱" />
+            <Input
+              prefix={<MailOutlined />}
+              placeholder="researcher@example.com"
+            />
           </Form.Item>
           <Form.Item
             name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
+            label="密码"
+            rules={[{ required: true, message: "请输入密码。" }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder="输入密码" />
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={isLoading} block>
-              登录
-            </Button>
-          </Form.Item>
+          <Button type="primary" htmlType="submit" loading={isLoading} block>
+            登录并继续
+          </Button>
         </Form>
       ),
     },
     {
-      key: 'register',
-      label: '注册',
+      key: "register",
+      label: "创建账号",
       children: (
         <Form onFinish={handleRegister} layout="vertical" size="large">
           <Form.Item
             name="name"
-            rules={[{ required: true, message: '请输入姓名' }]}
+            label="姓名"
+            rules={[{ required: true, message: "请输入姓名。" }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="姓名" />
+            <Input prefix={<UserOutlined />} placeholder="研究者姓名" />
           </Form.Item>
           <Form.Item
             name="email"
+            label="邮箱"
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
+              { required: true, message: "请输入邮箱。" },
+              { type: "email", message: "邮箱格式不正确。" },
             ]}
           >
-            <Input prefix={<MailOutlined />} placeholder="邮箱" />
+            <Input
+              prefix={<MailOutlined />}
+              placeholder="researcher@example.com"
+            />
           </Form.Item>
           <Form.Item
             name="password"
+            label="密码"
             rules={[
-              { required: true, message: '请输入密码' },
-              { min: 6, message: '密码至少 6 位' },
+              { required: true, message: "请输入密码。" },
+              { min: 6, message: "密码至少需要 6 位。" },
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder="至少 6 位" />
           </Form.Item>
           <Form.Item
             name="confirmPassword"
+            label="确认密码"
+            dependencies={["password"]}
             rules={[
-              { required: true, message: '请确认密码' },
+              { required: true, message: "请再次输入密码。" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('两次密码不一致'));
+                  return !value || getFieldValue("password") === value
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("两次输入的密码不一致。"));
                 },
               }),
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="再次输入密码"
+            />
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={isLoading} block>
-              注册
-            </Button>
-          </Form.Item>
+          <Button type="primary" htmlType="submit" loading={isLoading} block>
+            创建账号并继续
+          </Button>
         </Form>
       ),
     },
   ];
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: 'calc(100vh - 200px)',
-      }}
-    >
+    <main className="login-page">
       {contextHolder}
-      <Card style={{ width: 420, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={3} style={{ marginBottom: 4 }}>
-            🧪 科研分身
-          </Title>
-          <p style={{ color: '#888' }}>AI-Powered Research Assistant</p>
+      <section className="login-context">
+        <span>ACCESS / RESEARCH WORKSPACE</span>
+        <h1>实验需要可追溯，账号只负责确认“是谁”。</h1>
+        <p>论文、代码、分支与运行结果都会归入你的研究项目。</p>
+      </section>
+      <section className="login-panel">
+        <div className="login-panel-heading">
+          <small>科研分身</small>
+          <h2>进入实验工作区</h2>
         </div>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
-          centered
-          items={tabItems}
+          items={items}
+          animated={false}
         />
-      </Card>
-    </div>
+      </section>
+    </main>
   );
 }

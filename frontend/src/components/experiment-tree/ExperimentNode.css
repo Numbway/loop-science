@@ -1,0 +1,190 @@
+.lineage-node {
+  --node-status: #7b8ca3;
+  position: relative;
+  width: 248px;
+  padding: 15px 16px 12px;
+  cursor: pointer;
+  color: #17243d;
+  border: 1px solid #bdcad8;
+  border-top: 3px solid var(--node-status);
+  background: rgba(249, 251, 253, 0.98);
+  box-shadow: 0 12px 28px rgba(29, 47, 74, 0.09);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.lineage-node:hover,
+.lineage-node.selected {
+  border-color: var(--node-status);
+  box-shadow:
+    0 16px 34px rgba(29, 47, 74, 0.15),
+    0 0 0 3px color-mix(in srgb, var(--node-status) 16%, transparent);
+  transform: translateY(-2px);
+}
+
+.lineage-node:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--node-status) 38%, transparent);
+  outline-offset: 3px;
+}
+
+.lineage-node.status-running {
+  --node-status: #168f82;
+}
+
+.lineage-node.status-completed {
+  --node-status: #6457d9;
+}
+
+.lineage-node.status-failed {
+  --node-status: #c55a45;
+}
+
+.lineage-node.status-pending {
+  --node-status: #c48a2b;
+}
+
+.lineage-node header,
+.lineage-node footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.node-sequence {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.node-sequence::before {
+  margin-right: 5px;
+  color: #96a5b8;
+  content: "NODE";
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  vertical-align: middle;
+}
+
+.node-status {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--node-status);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.node-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin: 13px 0 11px;
+  background: #d7e0e9;
+}
+
+.node-metrics > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  background: #edf2f7;
+}
+
+.node-metrics small {
+  color: #6e7d91;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.node-metrics strong {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lineage-node > p {
+  display: -webkit-box;
+  min-height: 34px;
+  margin: 0 0 10px;
+  overflow: hidden;
+  color: #53647a;
+  font-size: 10px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.lineage-node footer {
+  padding-top: 9px;
+  border-top: 1px solid #d9e1ea;
+}
+
+.lineage-node footer > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: #6d7c90;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 8px;
+}
+
+.lineage-node footer > div {
+  display: flex;
+  gap: 5px;
+}
+
+.lineage-node button {
+  display: grid;
+  width: 26px;
+  height: 25px;
+  place-items: center;
+  cursor: pointer;
+  color: #56677d;
+  border: 1px solid #cbd5e0;
+  background: #fff;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.lineage-node button:hover,
+.lineage-node button:focus-visible {
+  color: white;
+  border-color: var(--node-status);
+  background: var(--node-status);
+}
+
+.branch-label {
+  position: absolute;
+  top: -21px;
+  left: 13px;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  max-width: 180px;
+  overflow: hidden;
+  color: #77879c;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineage-handle {
+  width: 7px !important;
+  height: 7px !important;
+  border: 2px solid #edf2f7 !important;
+  background: var(--node-status) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineage-node {
+    transition: none;
+  }
+}

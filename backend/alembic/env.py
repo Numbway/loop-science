@@ -1,7 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
@@ -20,10 +19,13 @@ from pathlib import Path
 # Add the backend directory to the path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app.core.config import settings
 from app.core.database import Base
-from app.models import *  # noqa: F401, F403 — import all models for autogenerate
+from app.models import *
 
 target_metadata = Base.metadata
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL_SYNC)
+config.set_section_option(config.config_ini_section, "sqlalchemy.url", settings.DATABASE_URL_SYNC)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

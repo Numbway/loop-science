@@ -1,0 +1,42 @@
+<section class="report-section" id="report-comparison">
+  <span class="section-number">03</span>
+  <header class="section-heading">
+    <div><p class="utility">Metric ledger</p><h2>性能对比</h2></div>
+    <span>父节点 → 当前节点 → 项目目标</span>
+  </header>
+  <div class="panel table-scroll">
+    {% if metric_rows %}
+      <table class="metric-table">
+        <thead>
+          <tr><th>指标</th><th>父节点</th><th>当前结果</th><th>变化</th><th>目标</th><th>判定</th></tr>
+        </thead>
+        <tbody>
+          {% for row in metric_rows %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.parent|format_metric(row.name) }}</td>
+              <td>{{ row.current|format_metric(row.name) }}</td>
+              <td>
+                {% if row.delta is not none %}
+                  {{ row.delta_display }}
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ row.target|format_metric(row.name) }}</td>
+              <td>
+                {% if row.improved is none %}
+                  <span class="metric-state neutral">基线</span>
+                {% elif row.improved %}
+                  <span class="metric-state good">改善</span>
+                {% else %}
+                  <span class="metric-state bad">回退</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-evidence">尚无可比较指标。本 section 保留以明确当前证据缺口。</div>
+    {% endif %}
+  </div>
+</section>

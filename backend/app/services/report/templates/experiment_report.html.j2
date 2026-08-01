@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>实验节点 {{ experiment.node_id }} · 独立分析报告</title>
+    <style>
+      :root {
+        --paper: #f7f8fa;
+        --surface: #ffffff;
+        --ink: #13233f;
+        --muted: #617089;
+        --line: #ccd5e2;
+        --indigo: #5147c7;
+        --teal: #0c8f83;
+        --red: #b5483a;
+        --soft-indigo: #eeedff;
+        --soft-teal: #e3f5f1;
+        --soft-red: #f8e9e6;
+        --mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+        --body: "Segoe UI Variable", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+        --display: "Aptos Display", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(rgba(61, 80, 112, .045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(61, 80, 112, .045) 1px, transparent 1px),
+          #e9eef5;
+        background-size: 30px 30px;
+        font-family: var(--body);
+        line-height: 1.65;
+      }
+
+      a { color: var(--indigo); }
+      a:focus-visible { outline: 3px solid rgba(81, 71, 199, .28); outline-offset: 3px; }
+      code, pre, .utility, .section-number { font-family: var(--mono); }
+
+      .report-shell {
+        width: min(1120px, calc(100% - 40px));
+        margin: 36px auto 72px;
+        border: 1px solid #bfcbd9;
+        background: var(--paper);
+        box-shadow: 0 24px 65px rgba(27, 44, 73, .13);
+      }
+
+      .report-masthead {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr) 230px;
+        min-height: 210px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .record-stamp, .record-result, .record-thesis { padding: 28px; }
+      .record-stamp {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border-right: 1px solid var(--line);
+        background: #edf2f7;
+      }
+
+      .utility {
+        margin: 0;
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: .13em;
+        line-height: 1.4;
+        text-transform: uppercase;
+      }
+
+      .record-stamp strong {
+        font: 700 62px/.9 var(--display);
+        letter-spacing: -.055em;
+      }
+
+      .status-seal {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        width: fit-content;
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .status-seal::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--indigo);
+        content: "";
+      }
+
+      .record-thesis {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .record-thesis h1 {
+        max-width: 680px;
+        margin: 13px 0 11px;
+        font: 680 clamp(30px, 4vw, 48px)/1.04 var(--display);
+        letter-spacing: -.055em;
+      }
+
+      .record-thesis > p {
+        max-width: 690px;
+        margin: 0;
+        color: #40506a;
+        font-size: 13px;
+      }
+
+      .record-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px 18px;
+        margin-top: 20px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .record-meta code {
+        padding: 4px 7px;
+        color: var(--indigo);
+        background: var(--soft-indigo);
+      }
+
+      .record-result {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-left: 1px solid var(--line);
+        background: linear-gradient(135deg, #f5f4ff, #fff);
+      }
+
+      .record-result small {
+        overflow-wrap: anywhere;
+        color: var(--teal);
+        font: 700 9px/1.4 var(--mono);
+      }
+
+      .record-result strong {
+        margin: 12px 0 4px;
+        font: 700 40px/1 var(--display);
+        letter-spacing: -.04em;
+      }
+
+      .record-result span {
+        width: fit-content;
+        padding: 3px 6px;
+        color: var(--teal);
+        background: var(--soft-teal);
+        font: 700 10px/1.4 var(--mono);
+      }
+
+      .section-index {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        border-bottom: 1px solid var(--line);
+        background: #f1f4f8;
+      }
+
+      .section-index a {
+        min-width: 0;
+        padding: 13px 11px 12px;
+        color: var(--ink);
+        border-right: 1px solid var(--line);
+        text-decoration: none;
+      }
+
+      .section-index a:last-child { border-right: 0; }
+      .section-index span {
+        display: block;
+        color: var(--indigo);
+        font: 700 9px/1 var(--mono);
+      }
+      .section-index strong { display: block; margin-top: 6px; font-size: 10px; }
+
+      .report-body {
+        position: relative;
+        padding: 0 42px 46px 94px;
+      }
+
+      .report-body::before {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 61px;
+        width: 1px;
+        background: var(--line);
+        content: "";
+      }
+
+      .report-section {
+        position: relative;
+        padding: 42px 0 0;
+        scroll-margin-top: 20px;
+      }
+
+      .section-number {
+        position: absolute;
+        top: 45px;
+        left: -59px;
+        display: grid;
+        width: 52px;
+        height: 28px;
+        place-items: center;
+        color: white;
+        border: 5px solid var(--paper);
+        background: var(--indigo);
+        font-size: 9px;
+        font-weight: 750;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 17px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-heading h2 {
+        margin: 4px 0 0;
+        font: 680 25px/1.1 var(--display);
+        letter-spacing: -.035em;
+      }
+
+      .section-heading > span { color: var(--muted); font-size: 10px; }
+      .panel {
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .verdict-banner {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 240px;
+      }
+      .verdict-copy { padding: 25px 27px; }
+      .verdict-copy strong { display: block; margin-bottom: 7px; font-size: 16px; }
+      .verdict-copy p { margin: 0; color: #465771; font-size: 12px; }
+      .run-facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border-left: 1px solid var(--line);
+      }
+      .run-facts div { padding: 16px; border-bottom: 1px solid var(--line); }
+      .run-facts div:nth-last-child(-n + 2) { border-bottom: 0; }
+      .run-facts div:nth-child(odd) { border-right: 1px solid var(--line); }
+      .run-facts dt { color: var(--muted); font: 8px/1.3 var(--mono); text-transform: uppercase; }
+      .run-facts dd { margin: 6px 0 0; font-size: 10px; font-weight: 650; }
+
+      .analysis-grid { display: grid; grid-template-columns: 1.25fr .75fr; }
+      .diagnosis-copy, .rationale-list { padding: 25px 27px; }
+      .diagnosis-copy { border-right: 1px solid var(--line); }
+      .analysis-grid h3 { margin: 0 0 10px; font-size: 11px; }
+      .analysis-grid p { margin: 0; color: #40516b; font-size: 12px; white-space: pre-line; }
+      .rationale-list ul { margin: 0; padding-left: 18px; color: #40516b; font-size: 11px; }
+      .rationale-list li + li { margin-top: 8px; }
+      .report-config {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--line);
+        background: #f8fafc;
+      }
+      .report-config summary {
+        padding: 12px 17px;
+        cursor: pointer;
+        font-size: 9px;
+        font-weight: 700;
+      }
+      .report-config pre {
+        margin: 0;
+        overflow: auto;
+        padding: 16px 18px;
+        color: #d9e2ec;
+        background: #19263a;
+        font: 9px/1.55 var(--mono);
+      }
+
+      .metric-table { width: 100%; border-collapse: collapse; }
+      .metric-table th, .metric-table td {
+        padding: 13px 15px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+      .metric-table th:last-child, .metric-table td:last-child { border-right: 0; }
+      .metric-table tbody tr:last-child td { border-bottom: 0; }
+      .metric-table th {
+        color: var(--muted);
+        background: #f0f3f7;
+        font: 700 8px/1.3 var(--mono);
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .metric-table td { font: 10px/1.45 var(--mono); }
+      .metric-table td:first-child { font-weight: 750; }
+      .metric-state { display: inline-flex; padding: 3px 6px; }
+      .metric-state.good { color: var(--teal); background: var(--soft-teal); }
+      .metric-state.bad { color: var(--red); background: var(--soft-red); }
+      .metric-state.neutral { color: var(--muted); background: #eef2f6; }
+
+      .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+      .chart-card { padding: 18px; }
+      .chart-card header { display: flex; justify-content: space-between; gap: 10px; }
+      .chart-card h3 { margin: 0; overflow-wrap: anywhere; font: 700 10px/1.4 var(--mono); }
+      .chart-card header strong { font: 700 16px/1 var(--mono); }
+      .chart-card svg { display: block; width: 100%; height: 150px; margin: 16px 0 10px; overflow: visible; }
+      .chart-gridline { stroke: #dce3eb; stroke-width: .6; }
+      .chart-line { fill: none; stroke: var(--indigo); stroke-linejoin: round; stroke-linecap: round; stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+      .chart-card.down .chart-line { stroke: var(--teal); }
+      .chart-dot { fill: var(--indigo); }
+      .chart-card footer { display: flex; justify-content: space-between; color: var(--muted); font: 8px/1.4 var(--mono); }
+
+      .empty-evidence { padding: 28px; color: var(--muted); font-size: 11px; text-align: center; }
+      .diff-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--line);
+        background: #f0f3f7;
+        font: 9px/1.4 var(--mono);
+      }
+      .diff-meta b:first-of-type { color: var(--teal); }
+      .diff-meta b:last-of-type { color: var(--red); }
+      .diff-view {
+        max-height: 640px;
+        margin: 0;
+        overflow: auto;
+        padding: 15px 0;
+        color: #d9e2ec;
+        background: #19263a;
+        font: 9px/1.55 var(--mono);
+        white-space: pre;
+      }
+      .diff-view span { display: block; min-height: 1.55em; padding: 0 18px; }
+      .diff-view .added { color: #bceade; background: rgba(12, 143, 131, .17); }
+      .diff-view .removed { color: #ffd2ca; background: rgba(181, 72, 58, .18); }
+      .diff-view .hunk { color: #c9c4ff; background: rgba(81, 71, 199, .26); }
+      .truncated-note { margin: 0; padding: 10px 16px; color: var(--red); font-size: 9px; }
+
+      .reference-list { list-style: none; margin: 0; padding: 0; }
+      .reference-list li {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr) 110px;
+        gap: 17px;
+        align-items: start;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .reference-list li:last-child { border-bottom: 0; }
+      .reference-index { color: var(--teal); font: 700 10px/1.4 var(--mono); }
+      .reference-copy strong { display: block; font-size: 11px; }
+      .reference-copy span, .reference-copy p { color: var(--muted); font-size: 9px; }
+      .reference-copy p { margin: 6px 0 0; }
+      .reference-list a { justify-self: end; font-size: 9px; }
+
+      .next-step-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .next-step-list li { min-height: 130px; padding: 21px; border-right: 1px solid var(--line); }
+      .next-step-list li:last-child { border-right: 0; }
+      .next-step-list span { display: block; margin-bottom: 12px; color: var(--indigo); font: 700 10px/1 var(--mono); }
+      .next-step-list p { margin: 0; color: #40516b; font-size: 11px; }
+
+      .report-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 18px 42px;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+        background: #edf2f7;
+        font: 8px/1.5 var(--mono);
+      }
+
+      @media (max-width: 760px) {
+        .report-shell { width: 100%; margin: 0; border: 0; box-shadow: none; }
+        .report-masthead { grid-template-columns: 105px minmax(0, 1fr); }
+        .record-stamp, .record-result, .record-thesis { padding: 20px; }
+        .record-stamp strong { font-size: 42px; }
+        .record-result { grid-column: 1 / -1; border-top: 1px solid var(--line); border-left: 0; }
+        .section-index { grid-template-columns: repeat(2, 1fr); }
+        .section-index a { border-bottom: 1px solid var(--line); }
+        .report-body { padding: 0 15px 35px 52px; }
+        .report-body::before { left: 31px; }
+        .section-number { left: -39px; width: 35px; }
+        .verdict-banner, .analysis-grid { grid-template-columns: 1fr; }
+        .run-facts { border-top: 1px solid var(--line); border-left: 0; }
+        .diagnosis-copy { border-right: 0; border-bottom: 1px solid var(--line); }
+        .chart-grid, .next-step-list { grid-template-columns: 1fr; }
+        .next-step-list li { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+        .next-step-list li:last-child { border-bottom: 0; }
+        .metric-table { min-width: 670px; }
+        .table-scroll { overflow-x: auto; }
+        .reference-list li { grid-template-columns: 45px 1fr; }
+        .reference-list a { grid-column: 2; justify-self: start; }
+      }
+
+      @media print {
+        @page { size: A4; margin: 14mm; }
+        html { scroll-behavior: auto; }
+        body { background: white; }
+        .report-shell { width: 100%; margin: 0; border: 0; box-shadow: none; }
+        .section-index { display: none; }
+        .report-body { padding-right: 0; }
+        .report-section, .panel, .chart-card { break-inside: avoid; }
+        .diff-view { max-height: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+        a { color: var(--ink); text-decoration: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="report-shell">
+      <header class="report-masthead">
+        <div class="record-stamp">
+          <p class="utility">Experiment<br>evidence report</p>
+          <strong>{{ experiment.node_id }}</strong>
+          <span class="status-seal">{{ status_label }}</span>
+        </div>
+        <div class="record-thesis">
+          <p class="utility">Conclusion seal / 实验结论封签</p>
+          <h1>{{ verdict }}</h1>
+          <p>{{ experiment.improvement_description or "初始复现实验基线" }}</p>
+          <div class="record-meta">
+            <code>{{ experiment.git_branch }}</code>
+            <span>{{ project.name }}</span>
+            <span>{{ project.paper_title }}</span>
+          </div>
+        </div>
+        <div class="record-result">
+          <small>{{ primary_metric.name if primary_metric else "PRIMARY METRIC" }}</small>
+          <strong>{{ primary_metric.current|format_metric(primary_metric.name) if primary_metric else "—" }}</strong>
+          <span>
+            {% if primary_metric and primary_metric.delta is not none %}
+              {{ primary_metric.delta_display }}
+            {% else %}
+              基线记录
+            {% endif %}
+          </span>
+        </div>
+      </header>
+
+      <nav class="section-index" aria-label="报告章节">
+        <a href="#report-summary"><span>01</span><strong>快速总结</strong></a>
+        <a href="#report-analysis"><span>02</span><strong>详细分析</strong></a>
+        <a href="#report-comparison"><span>03</span><strong>性能对比</strong></a>
+        <a href="#report-curves"><span>04</span><strong>训练曲线</strong></a>
+        <a href="#report-code"><span>05</span><strong>代码变更</strong></a>
+        <a href="#report-references"><span>06</span><strong>参考文献</strong></a>
+        <a href="#report-next-steps"><span>07</span><strong>后续建议</strong></a>
+      </nav>
+
+      <main class="report-body">
+        {% include "sections/summary.html.j2" %}
+        {% include "sections/analysis.html.j2" %}
+        {% include "sections/comparison.html.j2" %}
+        {% include "sections/curves.html.j2" %}
+        {% include "sections/code_changes.html.j2" %}
+        {% include "sections/references.html.j2" %}
+        {% include "sections/next_steps.html.j2" %}
+      </main>
+
+      <footer class="report-footer">
+        <span>REPORT ID / {{ experiment.id }}</span>
+        <span>GENERATED / {{ generated_at|format_datetime }}</span>
+        <span>独立 HTML · 内联样式与训练曲线 · 无运行时依赖</span>
+      </footer>
+    </article>
+  </body>
+</html>

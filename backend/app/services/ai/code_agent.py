@@ -93,7 +93,7 @@ class CodeAgent:
     """
 
     def __init__(self, workspace: str | Path, api_key: str = ""):
-        self.workspace = Path(workspace)
+        self.workspace = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
         self._api_key = api_key or settings.ANTHROPIC_API_KEY
         self._is_mock = not self._api_key or self._api_key == "sk-ant-xxx"
@@ -145,6 +145,7 @@ class CodeAgent:
 - Save checkpoints to ./checkpoints/
 - TensorBoard logs to ./runs/
 - Support SANDBOX_MODE=true env var to run only 1 batch for validation
+- Read batch_size, learning_rate, and device overrides from EXPERIMENT_CONFIG
 - After writing each file, run run_check to verify syntax
 - Output a summary of all files created and key design decisions."""
 
@@ -226,7 +227,7 @@ Please:
                     tools=TOOLS,
                     messages=messages,
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - external SDK error boundary
                 errors.append(str(e))
                 return AgentResult(
                     success=False,
@@ -283,41 +284,55 @@ Please:
 
     async def _execute_tool(self, name: str, input_data: dict) -> str:
         """Execute a tool call and return the result string."""
-        if name == "read_file":
-            return self._tool_read(input_data.get("path", ""))
-        elif name == "write_file":
-            return self._tool_write(
-                input_data.get("path", ""), input_data.get("content", "")
-            )
-        elif name == "edit_file":
-            return self._tool_edit(
-                input_data.get("path", ""),
-                input_data.get("old_string", ""),
-                input_data.get("new_string", ""),
-            )
-        elif name == "list_files":
-            return self._tool_list(input_data.get("directory", "."))
-        elif name == "run_check":
-            return self._tool_check(input_data.get("path", ""))
+        try:
+            if name == "read_file":
+                return self._tool_read(input_data.get("path", ""))
+            elif name == "write_file":
+                return self._tool_write(
+                    input_data.get("path", ""), input_data.get("content", "")
+                )
+            elif name == "edit_file":
+                return self._tool_edit(
+                    input_data.get("path", ""),
+                    input_data.get("old_string", ""),
+                    input_data.get("new_string", ""),
+                )
+            elif name == "list_files":
+                return self._tool_list(input_data.get("directory", "."))
+            elif name == "run_check":
+                return self._tool_check(input_data.get("path", ""))
+        except ValueError as exc:
+            return f"Error: {exc}"
         return f"Unknown tool: {name}"
 
+    def _safe_path(self, path: str) -> Path:
+        candidate = Path(path)
+        resolved = (self.workspace / candidate).resolve()
+        if (
+            candidate.is_absolute()
+            or ".git" in candidate.parts
+            or not resolved.is_relative_to(self.workspace)
+        ):
+            raise ValueError("path must remain within the workspace")
+        return resolved
+
     def _tool_read(self, path: str) -> str:
-        p = self.workspace / path
+        p = self._safe_path(path)
         if not p.exists():
             return f"Error: file not found: {path}"
         try:
             return p.read_text(encoding="utf-8")
-        except Exception as e:
+        except (OSError, UnicodeError) as e:
             return f"Error reading {path}: {e}"
 
     def _tool_write(self, path: str, content: str) -> str:
-        p = self.workspace / path
+        p = self._safe_path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
         return f"File written: {path} ({len(content)} chars)"
 
     def _tool_edit(self, path: str, old: str, new: str) -> str:
-        p = self.workspace / path
+        p = self._safe_path(path)
         if not p.exists():
             return f"Error: file not found: {path}"
         content = p.read_text(encoding="utf-8")
@@ -329,7 +344,7 @@ Please:
         return f"File edited: {path}"
 
     def _tool_list(self, directory: str) -> str:
-        p = self.workspace / directory
+        p = self._safe_path(directory)
         if not p.exists():
             return "Directory not found"
         files = [str(f.relative_to(self.workspace)) for f in p.rglob("*") if f.is_file()]
@@ -338,18 +353,21 @@ Please:
     def _tool_check(self, path: str) -> str:
         import subprocess
 
-        p = self.workspace / path
+        p = self._safe_path(path)
         if not p.exists():
             return f"File not found: {path}"
         try:
             result = subprocess.run(
                 ["ruff", "check", str(p)],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
             )
             return result.stdout + result.stderr if result.returncode != 0 else "No lint errors."
         except FileNotFoundError:
             return "ruff not installed; skipping lint check."
-        except Exception as e:
+        except subprocess.SubprocessError as e:
             return f"Lint check error: {e}"
 
     def _extract_text(self, response) -> str:
@@ -505,8 +523,9 @@ class ResearchModel(nn.Module):
 '''
 
 MOCK_TRAIN_PY = '''"""Training loop with TensorBoard logging."""
-import os
 import argparse
+import json
+import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
@@ -524,7 +543,8 @@ def train_epoch(
     """Train for one epoch, return average loss."""
     model.train()
     total_loss = 0.0
-    max_batches = 1 if os.getenv("SANDBOX_MODE") else len(loader)
+    sandbox_mode = os.getenv("SANDBOX_MODE", "0").lower() in {"1", "true"}
+    max_batches = 1 if sandbox_mode else len(loader)
 
     for batch_idx, (data, target) in enumerate(loader):
         if batch_idx >= max_batches:
@@ -551,7 +571,8 @@ def validate(
     total_loss = 0.0
     correct = 0
     total = 0
-    max_batches = 1 if os.getenv("SANDBOX_MODE") else len(loader)
+    sandbox_mode = os.getenv("SANDBOX_MODE", "0").lower() in {"1", "true"}
+    max_batches = 1 if sandbox_mode else len(loader)
 
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(loader):
@@ -568,14 +589,34 @@ def validate(
 
 
 def main():
+    runtime_config = json.loads(os.getenv("EXPERIMENT_CONFIG", "{}"))
+    training_config = runtime_config.get("training", {})
+    if not isinstance(training_config, dict):
+        training_config = {}
+
+    def runtime_value(name, default):
+        return runtime_config.get(name, training_config.get(name, default))
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--epochs", type=int, default=runtime_value("epochs", 10))
+    parser.add_argument(
+        "--batch-size", type=int, default=runtime_value("batch_size", 64)
+    )
+    parser.add_argument(
+        "--lr", type=float, default=runtime_value("learning_rate", 0.001)
+    )
     parser.add_argument("--data-path", type=str, default="./data")
     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    requested_device = runtime_value("device", "auto")
+    device_name = (
+        "cuda"
+        if requested_device == "auto" and torch.cuda.is_available()
+        else "cpu"
+        if requested_device == "auto"
+        else requested_device
+    )
+    device = torch.device(device_name)
     writer = SummaryWriter("./runs")
 
     train_loader, val_loader = get_dataloaders(args.data_path, args.batch_size)

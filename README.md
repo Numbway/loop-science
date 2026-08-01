@@ -59,7 +59,7 @@ docker-compose exec backend alembic upgrade head
 - [ ] Phase 2: 论文管理（M4-M6）
 - [ ] Phase 3: AI 服务（M7-M9）
 - [ ] Phase 4: 实验执行（M10-M13）
-- [ ] Phase 5: 前端（M14-M17）
+- [x] Phase 5: 前端（M14-M17）
 - [ ] Phase 6: 完善（M18-M21）
 
 ## 项目结构
