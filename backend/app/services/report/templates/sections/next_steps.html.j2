@@ -1,0 +1,14 @@
+<section class="report-section" id="report-next-steps">
+  <span class="section-number">07</span>
+  <header class="section-heading">
+    <div><p class="utility">Controlled continuation</p><h2>后续建议</h2></div>
+    <span>下一轮只验证一个关键变量</span>
+  </header>
+  <div class="panel">
+    <ol class="next-step-list">
+      {% for step in next_steps %}
+        <li><span>{{ "%02d"|format(loop.index) }}</span><p>{{ step }}</p></li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>

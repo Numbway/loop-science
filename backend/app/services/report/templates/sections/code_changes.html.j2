@@ -1,0 +1,25 @@
+<section class="report-section" id="report-code">
+  <span class="section-number">05</span>
+  <header class="section-heading">
+    <div><p class="utility">Reproducible changeset</p><h2>代码变更</h2></div>
+    <span>{{ code_diff.base_branch }} → {{ code_diff.target_branch }}</span>
+  </header>
+  <div class="panel">
+    {% if code_diff.available %}
+      <div class="diff-meta">
+        <span>{{ code_diff.files|length }} 个文件</span>
+        <b>+{{ code_diff.insertions }}</b>
+        <b>−{{ code_diff.deletions }}</b>
+        {% for file in code_diff.files %}<code>{{ file }}</code>{% endfor %}
+      </div>
+      {% if code_diff.patch %}
+        <pre class="diff-view" aria-label="统一格式代码差异">{% for line in code_diff.patch.split("\n") %}<span class="{% if line.startswith("+") and not line.startswith("+++") %}added{% elif line.startswith("-") and not line.startswith("---") %}removed{% elif line.startswith("@@") %}hunk{% endif %}">{{ line or " " }}</span>{% endfor %}</pre>
+      {% else %}
+        <div class="empty-evidence">两个实验分支之间没有代码差异。</div>
+      {% endif %}
+      {% if code_diff.truncated %}<p class="truncated-note">Diff 已在 80,000 字符处截断。</p>{% endif %}
+    {% else %}
+      <div class="empty-evidence">{{ code_diff.reason or "代码差异当前不可用。" }}</div>
+    {% endif %}
+  </div>
+</section>

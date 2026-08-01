@@ -5,7 +5,10 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CodeOutlined,
+  DownloadOutlined,
   ExperimentOutlined,
+  ExportOutlined,
+  FileAddOutlined,
   FileTextOutlined,
   LinkOutlined,
   LoadingOutlined,
@@ -14,8 +17,12 @@ import {
   WarningOutlined,
 } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  downloadExperimentReport,
+  generateExperimentReport,
+  getExperimentReport,
   getExperimentDetail,
   type MetricComparison,
 } from "../services/experimentDetail";
@@ -104,6 +111,11 @@ function diffLineClass(line: string): string {
 
 export default function ExperimentDetailPage() {
   const { experimentId = "" } = useParams();
+  const [reportAction, setReportAction] = useState<
+    "generate" | "open" | "download" | null
+  >(null);
+  const [reportNotice, setReportNotice] = useState("");
+  const [reportError, setReportError] = useState("");
   const query = useQuery({
     queryKey: ["experiment-detail", experimentId],
     queryFn: () => getExperimentDetail(experimentId),
@@ -111,6 +123,66 @@ export default function ExperimentDetailPage() {
     refetchInterval: (context) =>
       context.state.data?.status === "running" ? 5_000 : false,
   });
+
+  const generateReport = async () => {
+    setReportAction("generate");
+    setReportError("");
+    setReportNotice("");
+    try {
+      await generateExperimentReport(experimentId);
+      await query.refetch();
+      setReportNotice("独立 HTML 报告已生成，可打开或下载归档。");
+    } catch {
+      setReportError("报告生成失败。检查实验文件和 Git 分支后重试。");
+    } finally {
+      setReportAction(null);
+    }
+  };
+
+  const openReport = async () => {
+    const reportWindow = window.open("", "_blank");
+    if (!reportWindow) {
+      setReportError("浏览器阻止了新窗口。允许弹出窗口后重试。");
+      return;
+    }
+    reportWindow.opener = null;
+    setReportAction("open");
+    setReportError("");
+    setReportNotice("");
+    try {
+      const report = await getExperimentReport(experimentId);
+      const reportUrl = URL.createObjectURL(report);
+      reportWindow.location.href = reportUrl;
+      window.setTimeout(() => URL.revokeObjectURL(reportUrl), 60_000);
+    } catch {
+      reportWindow.close();
+      setReportError("报告未能打开。重新生成后再试。");
+    } finally {
+      setReportAction(null);
+    }
+  };
+
+  const downloadReport = async () => {
+    setReportAction("download");
+    setReportError("");
+    setReportNotice("");
+    try {
+      const report = await downloadExperimentReport(experimentId);
+      const reportUrl = URL.createObjectURL(report);
+      const anchor = document.createElement("a");
+      anchor.href = reportUrl;
+      anchor.download = `experiment-${query.data?.node_id ?? experimentId}-report.html`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(reportUrl), 0);
+      setReportNotice("报告已下载，可脱离系统独立打开。");
+    } catch {
+      setReportError("报告下载失败。重新生成后再试。");
+    } finally {
+      setReportAction(null);
+    }
+  };
 
   if (query.isLoading) {
     return (
@@ -461,16 +533,91 @@ export default function ExperimentDetailPage() {
             <pre>{JSON.stringify(detail.config, null, 2)}</pre>
           </details>
 
-          <button className="report-pending" type="button" disabled>
+          <section className="report-control" aria-label="独立 HTML 报告">
+            <header>
+              <span>
+                {detail.report_available ? (
+                  <CheckCircleOutlined />
+                ) : (
+                  <FileAddOutlined />
+                )}
+              </span>
+              <div>
+                <strong>
+                  {detail.report_available ? "HTML 报告已归档" : "生成独立报告"}
+                </strong>
+                <p>
+                  {detail.report_available
+                    ? "报告包含七类证据，可独立打开、下载和打印。"
+                    : "将当前节点的指标、曲线、诊断和代码差异固化为单个 HTML 文件。"}
+                </p>
+              </div>
+            </header>
+
             {detail.report_available ? (
-              <CheckCircleOutlined />
+              <div className="report-actions">
+                <button
+                  type="button"
+                  onClick={openReport}
+                  disabled={reportAction !== null}
+                >
+                  {reportAction === "open" ? (
+                    <LoadingOutlined spin />
+                  ) : (
+                    <ExportOutlined />
+                  )}
+                  打开报告
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadReport}
+                  disabled={reportAction !== null}
+                >
+                  {reportAction === "download" ? (
+                    <LoadingOutlined spin />
+                  ) : (
+                    <DownloadOutlined />
+                  )}
+                  下载
+                </button>
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={generateReport}
+                  disabled={reportAction !== null}
+                >
+                  {reportAction === "generate" ? (
+                    <LoadingOutlined spin />
+                  ) : (
+                    <FileTextOutlined />
+                  )}
+                  重新生成
+                </button>
+              </div>
             ) : (
-              <FileTextOutlined />
+              <button
+                className="report-generate"
+                type="button"
+                onClick={generateReport}
+                disabled={reportAction !== null}
+              >
+                {reportAction === "generate" ? (
+                  <LoadingOutlined spin />
+                ) : (
+                  <FileAddOutlined />
+                )}
+                {reportAction === "generate"
+                  ? "正在固化证据…"
+                  : "生成 HTML 报告"}
+              </button>
             )}
-            {detail.report_available
-              ? "HTML 报告已生成"
-              : "HTML 报告将在 M18 接入"}
-          </button>
+            {reportNotice && <p className="report-notice">{reportNotice}</p>}
+            {reportError && (
+              <p className="report-error" role="alert">
+                {reportError}
+              </p>
+            )}
+          </section>
         </aside>
       </div>
     </main>

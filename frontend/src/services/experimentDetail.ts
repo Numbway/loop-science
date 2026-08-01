@@ -71,11 +71,45 @@ export interface ExperimentDetail {
   report_available: boolean;
 }
 
+export interface ExperimentReportResult {
+  available: boolean;
+  generated_at: string;
+  view_endpoint: string;
+  download_endpoint: string;
+}
+
 export async function getExperimentDetail(
   experimentId: string,
 ): Promise<ExperimentDetail> {
   const response = await api.get<ExperimentDetail>(
     `/api/experiments/${experimentId}`,
+  );
+  return response.data;
+}
+
+export async function generateExperimentReport(
+  experimentId: string,
+): Promise<ExperimentReportResult> {
+  const response = await api.post<ExperimentReportResult>(
+    `/api/experiments/${experimentId}/report`,
+  );
+  return response.data;
+}
+
+export async function getExperimentReport(experimentId: string): Promise<Blob> {
+  const response = await api.get<Blob>(
+    `/api/experiments/${experimentId}/report`,
+    { responseType: "blob" },
+  );
+  return response.data;
+}
+
+export async function downloadExperimentReport(
+  experimentId: string,
+): Promise<Blob> {
+  const response = await api.get<Blob>(
+    `/api/experiments/${experimentId}/report/download`,
+    { responseType: "blob" },
   );
   return response.data;
 }

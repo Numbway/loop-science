@@ -366,10 +366,43 @@
 
 ---
 
-## 下一步：M18 HTML 报告生成
+### M18: HTML 报告生成 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/services/report/html_generator.py` — 独立报告数据整理、TensorBoard 曲线固化与原子写入
+- `backend/app/services/report/templates/experiment_report.html.j2` — 单文件报告骨架、内联样式和打印布局
+- `backend/app/services/report/templates/sections/` — 七个实验报告 section
+- `backend/app/api/experiment_report.py` — 报告生成、归属校验后的查看与下载 API
+- `backend/app/schemas/experiment_report.py` — 报告生成结果模型
+- `backend/tests/services/report/test_html_generator.py` — 模板完整性、转义、曲线与独立性测试
+- `backend/tests/api/test_experiment_report.py` — 生成、持久化、查看、下载和路径隔离测试
+- `frontend/src/pages/ExperimentDetail.tsx` — 报告生成、打开、下载与重新生成控制区
+- `frontend/src/services/experimentDetail.ts` — 授权 Blob 报告客户端
+
+**能力**：
+- 通过 Jinja2 生成快速总结、详细分析、性能对比、训练曲线、代码变更、参考文献和后续建议七类证据
+- 从 TensorBoard event 文件读取完整 scalar 历史并固化为内联 SVG，不依赖运行中的 TensorBoard 服务
+- 使用真实父子 Git 分支 Diff，并限制报告中的差异体积
+- 将样式、曲线和内容写入单个 HTML，支持离线打开、下载和 A4 打印
+- 原子替换同一实验报告，数据库仅记录私有规范路径
+- 查看与下载接口复用实验归属校验，拒绝旧路径、越界路径和缺失文件
+- 模板自动转义诊断、配置和代码内容，仅保留 HTTP/HTTPS 参考链接
+
+**验证结果**：
+- ✅ 全部后端测试 39 项通过，M18 相关 Ruff 与格式检查通过
+- ✅ 前端 Prettier、ESLint、TypeScript 生产构建通过
+- ✅ 独立报告桌面 1440px、窄屏 500px 和完整七 section 长页面完成无头浏览器视觉验收
+- ✅ M17 详情页报告控制区完成视觉验收
+- ✅ 报告中无外部样式、脚本或 iframe 运行时依赖
+
+---
+
+## 下一步：M19 WebSocket 实时通信
 
 待开发模块：
-- M18: 使用 Jinja2 生成包含 7 大 section、可独立打开的实验 HTML 报告
+- M19: 项目级 WebSocket、实验状态变化推送和前端实时更新
 
 ---
 

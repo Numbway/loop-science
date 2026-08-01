@@ -1,0 +1,19 @@
+<section class="report-section" id="report-summary">
+  <span class="section-number">01</span>
+  <header class="section-heading">
+    <div><p class="utility">Decision snapshot</p><h2>快速总结</h2></div>
+    <span>结果、方案与运行边界</span>
+  </header>
+  <div class="panel verdict-banner">
+    <div class="verdict-copy">
+      <strong>{{ verdict }}</strong>
+      <p>{{ experiment.improvement_description or "本节点用于建立论文复现基线。" }}</p>
+    </div>
+    <dl class="run-facts">
+      <div><dt>父节点</dt><dd>{{ parent.node_id if parent else "无 / 初始节点" }}</dd></div>
+      <div><dt>创建者</dt><dd>{{ "AI" if experiment.created_by == "ai" else "研究者" }}</dd></div>
+      <div><dt>开始</dt><dd>{{ experiment.started_at|format_datetime }}</dd></div>
+      <div><dt>耗时</dt><dd>{{ experiment.duration_seconds|format_duration }}</dd></div>
+    </dl>
+  </div>
+</section>

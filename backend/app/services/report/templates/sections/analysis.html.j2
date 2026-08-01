@@ -1,0 +1,31 @@
+<section class="report-section" id="report-analysis">
+  <span class="section-number">02</span>
+  <header class="section-heading">
+    <div><p class="utility">Diagnostic reading</p><h2>详细分析</h2></div>
+    <span>AI 诊断与改进理由</span>
+  </header>
+  <div class="panel analysis-grid">
+    <div class="diagnosis-copy">
+      <h3>AI 诊断</h3>
+      <p>{{ experiment.diagnosis or "尚未形成诊断。实验完成后应根据训练曲线、最终指标和异常日志补充分析。" }}</p>
+    </div>
+    <div class="rationale-list">
+      <h3>方案依据</h3>
+      <ul>
+        <li>{{ experiment.improvement_description or "建立可复现的初始实验基线。" }}</li>
+        {% for contribution in references[:2] %}
+          {% if contribution.key_contributions %}
+            <li>{{ contribution.key_contributions[0] }}</li>
+          {% endif %}
+        {% endfor %}
+        {% if not references %}
+          <li>本轮尚未关联外部参考证据。</li>
+        {% endif %}
+      </ul>
+    </div>
+    <details class="report-config">
+      <summary>查看本轮实验配置</summary>
+      <pre>{{ experiment.config|tojson(indent=2) }}</pre>
+    </details>
+  </div>
+</section>
