@@ -250,10 +250,38 @@
 
 ---
 
-## 下一步：Phase 5 / M14 项目创建向导
+### M14: 项目创建向导 ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `backend/app/api/project_wizard.py` — PDF、问答、代码生成/审核和实验启动编排 API
+- `backend/app/schemas/project_wizard.py` — 向导请求与响应模型
+- `backend/tests/api/test_project_wizard.py` — 完整创建流程和路径隔离测试
+- `frontend/src/pages/ProjectWizard.tsx` — 六步项目创建向导
+- `frontend/src/pages/ProjectWizard.css` — 实验协议台视觉、响应式与无障碍样式
+- `frontend/src/services/projectWizard.ts` — 类型化向导 API 客户端
+
+**能力**：
+- 上传并解析 25 MB 内的论文 PDF，建立归属当前用户的草稿项目
+- 通过最多六轮、一次一问的引导对话收集目标指标和实验边界
+- 调用 CodeAgent 生成七文件 PyTorch 框架，逐文件查看、编辑并创建审核提交
+- 限制 AI 工具和审核文件只能访问项目工作区，禁止路径穿越和 `.git` 修改
+- 创建 `exp/1` 初始实验分支并将首个实验排入 Celery 队列
+- 桌面与移动端响应式界面、键盘焦点、减少动画支持和路由级代码分割
+
+**验证结果**：
+- ✅ 全部后端测试 30 项通过，M14 相关 Ruff 与格式检查通过
+- ✅ 前端 TypeScript 生产构建与 ESLint 通过
+- ✅ 桌面 1440px 与移动 500px 无头浏览器截图完成视觉验收
+- ✅ 隔离 PostgreSQL 真实 HTTP 流程通过：注册、上传、六轮问答、生成 7 文件、保存、启动并入队
+
+---
+
+## 下一步：M15 实验树可视化
 
 待开发模块：
-- M14: 项目创建向导
+- M15: 实验树可视化
 
 ---
 

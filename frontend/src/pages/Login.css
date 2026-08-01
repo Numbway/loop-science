@@ -1,0 +1,109 @@
+.login-page {
+  display: grid;
+  min-height: calc(100vh - 68px);
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.72fr);
+  color: #17243d;
+}
+
+.login-context {
+  display: flex;
+  padding: clamp(50px, 9vw, 130px);
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+  background:
+    radial-gradient(
+      circle at 80% 12%,
+      rgba(100, 87, 217, 0.5),
+      transparent 29%
+    ),
+    #17243d;
+}
+
+.login-context span,
+.login-panel-heading small {
+  color: #83d5cb;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+
+.login-context h1 {
+  max-width: 680px;
+  margin: 26px 0 20px;
+  font-size: clamp(34px, 5vw, 64px);
+  font-weight: 620;
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+}
+
+.login-context p {
+  max-width: 520px;
+  margin: 0;
+  color: #aab8c9;
+  line-height: 1.8;
+}
+
+.login-panel {
+  display: flex;
+  padding: clamp(32px, 7vw, 90px);
+  flex-direction: column;
+  justify-content: center;
+  background: #f7f9fc;
+}
+
+.login-panel-heading {
+  margin-bottom: 25px;
+}
+
+.login-panel-heading small {
+  color: #168f82;
+}
+
+.login-panel-heading h2 {
+  margin: 8px 0 0;
+  font-size: 28px;
+  letter-spacing: -0.025em;
+}
+
+.login-panel .ant-tabs-nav {
+  margin-bottom: 25px;
+}
+
+.login-panel .ant-form-item-label label {
+  color: #536278;
+  font-size: 12px;
+}
+
+.login-panel .ant-input-affix-wrapper {
+  min-height: 46px;
+  border-radius: 0;
+}
+
+.login-panel .ant-btn {
+  min-height: 46px;
+  border-radius: 0;
+  background: #6457d9;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+@media (max-width: 780px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-context {
+    min-height: 270px;
+    padding: 45px 25px;
+  }
+
+  .login-context h1 {
+    font-size: 36px;
+  }
+
+  .login-panel {
+    padding: 42px 24px 65px;
+  }
+}

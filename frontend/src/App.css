@@ -1,1 +1,281 @@
-/* App-level styles */
+.app-shell {
+  min-height: 100vh;
+  color: #17243d;
+  background: #e9eff6;
+}
+
+.route-loading {
+  display: grid;
+  min-height: calc(100vh - 68px);
+  place-content: center;
+  gap: 12px;
+  color: #617187;
+  text-align: center;
+}
+
+.route-loading .anticon {
+  color: #6457d9;
+  font-size: 32px;
+}
+
+.app-header {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(18px, 4vw, 54px);
+  border-bottom: 1px solid #cbd6e3;
+  background: rgba(249, 251, 253, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.brand-lockup {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  color: #17243d;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  color: white;
+  border-radius: 50%;
+  background: #6457d9;
+}
+
+.brand-lockup > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+
+.brand-lockup strong {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+
+.brand-lockup small {
+  color: #687890;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.app-header nav {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+}
+
+.header-action,
+.logout-action,
+.user-chip {
+  display: inline-flex;
+  gap: 7px;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
+.header-action {
+  color: white;
+  background: #17243d;
+  text-decoration: none;
+}
+
+.logout-action {
+  cursor: pointer;
+  color: #5e6e84;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+}
+
+.user-chip {
+  color: #526176;
+  border-right: 1px solid #d4dde7;
+}
+
+.welcome-page {
+  display: grid;
+  min-height: calc(100vh - 68px);
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  gap: clamp(50px, 8vw, 120px);
+  align-items: center;
+  padding: 70px clamp(24px, 8vw, 130px);
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(65, 88, 123, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(65, 88, 123, 0.06) 1px, transparent 1px),
+    #e9eff6;
+  background-size: 31px 31px;
+}
+
+.welcome-kicker {
+  margin: 0 0 20px;
+  color: #168f82;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.welcome-copy h1 {
+  max-width: 800px;
+  margin: 0;
+  font-family:
+    "Aptos Display", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
+  font-size: clamp(42px, 6vw, 78px);
+  font-weight: 650;
+  letter-spacing: -0.065em;
+  line-height: 1.05;
+}
+
+.welcome-copy > p:not(.welcome-kicker) {
+  max-width: 640px;
+  margin: 28px 0 32px;
+  color: #5e6f86;
+  font-size: 15px;
+  line-height: 1.85;
+}
+
+.welcome-cta {
+  display: inline-flex;
+  gap: 26px;
+  min-height: 50px;
+  align-items: center;
+  padding: 0 22px;
+  color: white;
+  background: #6457d9;
+  box-shadow: 0 12px 28px rgba(100, 87, 217, 0.24);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.welcome-cta span {
+  font-size: 20px;
+}
+
+.welcome-instrument {
+  position: relative;
+  min-height: 460px;
+  padding: 34px;
+  color: white;
+  background:
+    radial-gradient(
+      circle at 85% 10%,
+      rgba(100, 87, 217, 0.42),
+      transparent 31%
+    ),
+    #17243d;
+  box-shadow: 30px 34px 0 rgba(100, 87, 217, 0.1);
+}
+
+.welcome-instrument::before {
+  position: absolute;
+  top: 34px;
+  right: 34px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #82d4ca;
+  box-shadow: 0 0 0 8px rgba(130, 212, 202, 0.1);
+  content: "";
+}
+
+.instrument-label {
+  color: #82d4ca;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.instrument-core {
+  display: grid;
+  place-items: center;
+  width: 190px;
+  height: 190px;
+  margin: 52px auto 44px;
+  border: 1px solid rgba(255, 255, 255, 0.19);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 24px rgba(255, 255, 255, 0.025),
+    0 0 0 48px rgba(255, 255, 255, 0.015);
+}
+
+.instrument-core .anticon {
+  color: #82d4ca;
+  font-size: 28px;
+}
+
+.instrument-core b {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 51px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.instrument-core small {
+  color: #94a5ba;
+  font-size: 10px;
+}
+
+.welcome-instrument ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #b8c4d2;
+  font-size: 11px;
+}
+
+.welcome-instrument li {
+  display: flex;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.welcome-instrument li span {
+  color: #82d4ca;
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+@media (max-width: 860px) {
+  .welcome-page {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-instrument {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-header {
+    height: 60px;
+  }
+
+  .user-chip,
+  .logout-action span:not(.anticon),
+  .header-action span:not(.anticon) {
+    display: none;
+  }
+
+  .welcome-page {
+    min-height: calc(100vh - 60px);
+    padding: 50px 20px;
+  }
+
+  .welcome-copy h1 {
+    font-size: 42px;
+  }
+}
