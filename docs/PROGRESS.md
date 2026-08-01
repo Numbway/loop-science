@@ -183,10 +183,29 @@
 
 ---
 
-## 下一步：M11 Docker Executor
+### M11: Docker Executor ✅
+
+**完成时间**：2026-08-01
+
+**文件清单**：
+- `executor/Dockerfile`、`executor/runner.py` — PyTorch 容器镜像与实验入口
+- `backend/app/services/experiment/executor.py` — 隔离容器生命周期管理
+- `backend/tests/services/experiment/test_executor.py` — 执行器单元测试
+
+**能力**：
+- 代码只读挂载、独立输出目录、禁用容器网络
+- 启动、日志流、状态查询、停止和清理容器
+- 通过 `EXECUTOR_IMAGE` 与 `EXECUTOR_SANDBOX_MODE` 配置镜像和沙箱模式
+
+**验证结果**：
+- ✅ 执行器单元测试 3 项通过，M11 范围 Ruff 通过
+- ✅ 构建 `loop-science-executor:latest` 并在无网络、只读容器中运行 PyTorch，输出 `torch-result=3.0`
+
+---
+
+## 下一步：M12 Celery 任务
 
 待开发模块：
-- M11: Docker Executor
 - M12: Celery 任务
 - M13: 实验监控
 

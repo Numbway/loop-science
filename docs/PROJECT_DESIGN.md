@@ -1382,7 +1382,7 @@ JWT_SECRET=xxx
 | M8 Diagnostician | ✅ 已完成 | 2026-07-29 | - |
 | M9 BrainstormDialog | ✅ 已完成 | 2026-07-29 | - |
 | M10 GitService | ✅ 已完成 | 2026-07-29 | - |
-| M11 Docker Executor | ⏳ 待开始 | - | - |
+| M11 Docker Executor | ✅ 已完成 | 2026-08-01 | - |
 | M12 Celery 任务 | ⏳ 待开始 | - | - |
 | M13 实验监控 | ⏳ 待开始 | - | - |
 | M14 项目创建向导 | ⏳ 待开始 | - | - |
