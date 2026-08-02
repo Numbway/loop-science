@@ -1,0 +1,215 @@
+.project-start-page {
+  --ink: #17243d;
+  --muted: #607089;
+  --line: #c7d3e0;
+  --paper: #f9fbfd;
+  --ion: #6457d9;
+  --signal: #168f82;
+  min-height: calc(100vh - 68px);
+  padding: clamp(42px, 7vw, 82px) clamp(22px, 8vw, 120px);
+  color: var(--ink);
+  background:
+    linear-gradient(rgba(70, 94, 130, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(70, 94, 130, 0.055) 1px, transparent 1px),
+    #e9eff6;
+  background-size: 28px 28px;
+}
+
+.project-start-intro {
+  max-width: 780px;
+  margin-bottom: 38px;
+}
+
+.project-start-intro > span,
+.protocol-choice small,
+.protocol-choice-index span {
+  font-family: "Cascadia Code", Consolas, monospace;
+  letter-spacing: 0.11em;
+}
+
+.project-start-intro > span {
+  color: var(--signal);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.project-start-intro h1 {
+  margin: 12px 0 14px;
+  font-family:
+    "Aptos Display", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
+  font-size: clamp(38px, 5vw, 64px);
+  letter-spacing: -0.055em;
+  line-height: 1.06;
+}
+
+.project-start-intro p {
+  max-width: 660px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.protocol-choice-grid {
+  display: grid;
+  max-width: 1160px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.protocol-choice {
+  position: relative;
+  display: grid;
+  min-height: 430px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 28px;
+  padding: clamp(24px, 3vw, 38px);
+  overflow: hidden;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: rgba(249, 251, 253, 0.95);
+  box-shadow: 0 18px 42px rgba(46, 65, 92, 0.09);
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.protocol-choice::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36%;
+  height: 5px;
+  background: var(--ion);
+  content: "";
+}
+
+.assets-protocol::before {
+  width: 64%;
+  background: var(--signal);
+}
+
+.protocol-choice:hover {
+  transform: translateY(-4px);
+  border-color: #9babc0;
+  box-shadow: 0 24px 54px rgba(46, 65, 92, 0.14);
+}
+
+.protocol-choice:focus-visible {
+  outline: 3px solid rgba(100, 87, 217, 0.28);
+  outline-offset: 4px;
+}
+
+.protocol-choice-index {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.protocol-choice-index .anticon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  color: white;
+  background: var(--ion);
+  font-size: 21px;
+}
+
+.assets-protocol .protocol-choice-index .anticon {
+  background: var(--signal);
+}
+
+.protocol-choice-index span,
+.protocol-choice small {
+  color: #718096;
+  font-size: 9px;
+}
+
+.protocol-choice h2 {
+  margin: 8px 0 10px;
+  font-size: clamp(26px, 3vw, 38px);
+  letter-spacing: -0.04em;
+}
+
+.protocol-choice p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.protocol-choice ol {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  counter-reset: gates;
+  list-style: none;
+}
+
+.protocol-choice li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  align-items: center;
+  min-height: 44px;
+  color: #4e6078;
+  border-top: 1px solid #d9e1e9;
+  font-size: 12px;
+  counter-increment: gates;
+}
+
+.protocol-choice li::before {
+  color: var(--ion);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  content: "0" counter(gates);
+}
+
+.assets-protocol li::before {
+  color: var(--signal);
+}
+
+.protocol-choice > strong {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ion);
+  font-size: 12px;
+}
+
+.assets-protocol > strong {
+  color: var(--signal);
+}
+
+.project-start-footnote {
+  display: flex;
+  max-width: 1160px;
+  gap: 10px;
+  align-items: center;
+  margin-top: 22px;
+  color: #687890;
+  font-size: 11px;
+}
+
+.project-start-footnote .anticon {
+  color: var(--signal);
+}
+
+@media (max-width: 820px) {
+  .protocol-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .protocol-choice {
+    min-height: 390px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .protocol-choice {
+    transition: none;
+  }
+}

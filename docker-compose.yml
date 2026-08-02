@@ -1,13 +1,14 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: rc-postgres
+    container_name: loop-science-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: rc_user
       POSTGRES_PASSWORD: rc_pass
       POSTGRES_DB: research_companion
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +19,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: rc-redis
+    container_name: loop-science-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -32,9 +34,28 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: rc-backend
+    restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./storage:/data/projects
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rc-worker
+    restart: unless-stopped
+    command: python -m celery -A app.core.celery_app.celery_app worker --loglevel=info --pool=solo
     volumes:
       - ./backend:/app
       - ./storage:/data/projects
@@ -51,6 +72,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: rc-frontend
+    restart: unless-stopped
     command: npm run dev -- --host 0.0.0.0
     ports:
       - "3000:3000"
@@ -61,6 +83,14 @@ services:
       - .env
     depends_on:
       - backend
+
+  executor:
+    build:
+      context: ./executor
+      dockerfile: Dockerfile
+    image: loop-science-executor:latest
+    profiles:
+      - executor-build
 
 volumes:
   postgres_data:

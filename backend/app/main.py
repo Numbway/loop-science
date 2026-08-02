@@ -4,6 +4,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.experiment_detail import router as experiment_detail_router
+from app.api.experiment_report import router as experiment_report_router
+from app.api.experiment_tree import router as experiment_tree_router
+from app.api.git import router as git_router
+from app.api.papers import router as papers_router
+from app.api.projects import router as projects_router
+from app.api.project_wizard import router as project_wizard_router
+from app.api.websocket import router as websocket_router
+from app.api.system_config import router as system_config_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -23,6 +32,15 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(experiment_detail_router)
+app.include_router(experiment_report_router)
+app.include_router(experiment_tree_router)
+app.include_router(papers_router)
+app.include_router(projects_router)
+app.include_router(git_router)
+app.include_router(project_wizard_router)
+app.include_router(websocket_router)
+app.include_router(system_config_router)
 
 
 @app.get("/health")

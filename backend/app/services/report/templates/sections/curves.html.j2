@@ -1,0 +1,33 @@
+<section class="report-section" id="report-curves">
+  <span class="section-number">04</span>
+  <header class="section-heading">
+    <div><p class="utility">TensorBoard snapshot</p><h2>训练曲线</h2></div>
+    <span>event 数据已固化为内联 SVG</span>
+  </header>
+  {% if charts %}
+    <div class="chart-grid">
+      {% for chart in charts %}
+        <article class="panel chart-card {{ 'down' if chart.improves_down else 'up' }}">
+          <header>
+            <h3>{{ chart.name }}</h3>
+            <strong>{{ chart.latest|format_metric(chart.name) }}</strong>
+          </header>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="{{ chart.name }} 训练曲线">
+            <path class="chart-gridline" d="M0 8H100 M0 50H100 M0 92H100"></path>
+            {% if chart.point_count > 1 %}
+              <polyline class="chart-line" points="{{ chart.points }}"></polyline>
+            {% else %}
+              <circle class="chart-dot" cx="50" cy="50" r="2.3"></circle>
+            {% endif %}
+          </svg>
+          <footer>
+            <span>step {{ chart.first_step }} → {{ chart.last_step }}</span>
+            <span>range {{ chart.minimum|format_metric(chart.name) }} — {{ chart.maximum|format_metric(chart.name) }}</span>
+          </footer>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="panel empty-evidence">未检测到 TensorBoard scalar 或最终指标，无法固化训练曲线。</div>
+  {% endif %}
+</section>

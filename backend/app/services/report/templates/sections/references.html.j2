@@ -1,0 +1,26 @@
+<section class="report-section" id="report-references">
+  <span class="section-number">06</span>
+  <header class="section-heading">
+    <div><p class="utility">Reference evidence</p><h2>参考文献</h2></div>
+    <span>{{ references|length }} 项关联依据</span>
+  </header>
+  <div class="panel">
+    {% if references %}
+      <ol class="reference-list">
+        {% for reference in references %}
+          <li>
+            <span class="reference-index">[{{ "%02d"|format(loop.index) }}]</span>
+            <div class="reference-copy">
+              <strong>{{ reference.title }}</strong>
+              <span>{{ reference.authors|join(", ") or "未知作者" }} · {{ reference.year or "年份未知" }}</span>
+              {% if reference.key_contributions %}<p>{{ reference.key_contributions[0] }}</p>{% endif %}
+            </div>
+            {% if reference.url %}<a href="{{ reference.url }}" rel="noreferrer">打开来源 ↗</a>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <div class="empty-evidence">项目尚未关联参考论文。</div>
+    {% endif %}
+  </div>
+</section>

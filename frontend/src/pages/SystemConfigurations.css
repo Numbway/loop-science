@@ -1,0 +1,372 @@
+.config-registry-page {
+  min-height: calc(100vh - 68px);
+  padding: 48px clamp(22px, 6vw, 92px) 70px;
+  color: #17243d;
+  background:
+    linear-gradient(rgba(70, 94, 130, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(70, 94, 130, 0.05) 1px, transparent 1px),
+    #e9eff6;
+  background-size: 28px 28px;
+}
+
+.registry-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 40px;
+  align-items: end;
+  width: min(1250px, 100%);
+  margin: 0 auto 30px;
+}
+
+.registry-hero p,
+.registry-section small {
+  margin: 0 0 9px;
+  color: #168f82;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.registry-hero h1 {
+  margin: 0 0 14px;
+  font-size: clamp(34px, 4.5vw, 58px);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+}
+
+.registry-hero > div:first-child > span {
+  color: #607089;
+  font-size: 13px;
+}
+
+.registry-route {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 22px;
+  color: #dce6f2;
+  background: #17243d;
+  box-shadow: 12px 12px 0 rgba(100, 87, 217, 0.12);
+}
+
+.registry-route span {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.registry-route .anticon {
+  color: #82d4ca;
+  font-size: 18px;
+}
+
+.registry-route b {
+  color: #6457d9;
+  font-size: 17px;
+}
+
+.registry-error {
+  width: min(1250px, 100%);
+  margin: 0 auto 18px;
+  padding: 13px 16px;
+  color: #784719;
+  border-left: 3px solid #d9871f;
+  background: #fff3df;
+  font-size: 12px;
+}
+
+.registry-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  width: min(1250px, 100%);
+  margin: 0 auto;
+}
+
+.registry-section {
+  min-width: 0;
+  border: 1px solid rgba(124, 145, 170, 0.52);
+  background: rgba(249, 251, 253, 0.96);
+  box-shadow: 0 24px 62px rgba(38, 58, 86, 0.09);
+}
+
+.registry-section > header {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto;
+  gap: 13px;
+  align-items: center;
+  min-height: 88px;
+  padding: 0 24px;
+  border-bottom: 1px solid #cad5e2;
+}
+
+.registry-section-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #6457d9;
+  border: 1px solid #cbc7ef;
+  border-radius: 50%;
+  background: #f0effc;
+  font-size: 18px;
+}
+
+.registry-section small {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.registry-section h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.registry-section header em {
+  color: #607089;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.registry-section header button,
+.registry-form > button {
+  display: inline-flex;
+  gap: 7px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  cursor: pointer;
+  color: white;
+  border: 0;
+  background: #6457d9;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.registry-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  padding: 22px 24px;
+  border-bottom: 1px solid #cad5e2;
+  background: #eef3f8;
+}
+
+.registry-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.registry-form label span {
+  color: #607089;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.registry-form .field-hint {
+  color: #7a8799;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.registry-form input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 43px;
+  padding: 0 12px;
+  color: #17243d;
+  border: 1px solid #cad5e2;
+  border-radius: 0;
+  outline: none;
+  background: white;
+  font: inherit;
+  font-size: 12px;
+}
+
+.registry-form input:focus {
+  border-color: #6457d9;
+  box-shadow: 0 0 0 3px rgba(100, 87, 217, 0.13);
+}
+
+.registry-form .wide-field,
+.registry-form > button {
+  grid-column: 1 / -1;
+}
+
+.registry-form > button {
+  min-height: 44px;
+}
+
+.registry-form > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.registry-auth {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  padding: 1px;
+  background: #cad5e2;
+}
+
+.registry-auth button {
+  min-height: 39px;
+  cursor: pointer;
+  color: #526176;
+  border: 0;
+  background: white;
+  font: inherit;
+  font-size: 11px;
+}
+
+.registry-auth button.active {
+  color: white;
+  background: #17243d;
+}
+
+.registry-form .native-file {
+  padding: 9px;
+  font-size: 9px;
+}
+
+.profile-ledger {
+  display: grid;
+}
+
+.profile-ledger article {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 34px;
+  gap: 12px;
+  align-items: center;
+  min-height: 92px;
+  padding: 12px 22px;
+  border-bottom: 1px solid #d9e1ea;
+}
+
+.profile-ledger article:last-child {
+  border-bottom: 0;
+}
+
+.profile-status {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: #168f82;
+  border-radius: 50%;
+  background: #e2f3f0;
+}
+
+.profile-ledger article > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.profile-ledger strong,
+.profile-ledger span,
+.profile-ledger small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-ledger strong {
+  font-size: 13px;
+}
+
+.profile-ledger article > div > span {
+  color: #536279;
+  font-size: 10px;
+}
+
+.profile-ledger small {
+  color: #8491a4;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 8px;
+}
+
+.profile-ledger article > button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: #8b5c58;
+  border: 0;
+  background: transparent;
+}
+
+.registry-empty {
+  display: grid;
+  min-height: 250px;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: #607089;
+}
+
+.registry-empty .anticon {
+  margin-bottom: 5px;
+  color: #6457d9;
+  font-size: 25px;
+}
+
+.registry-empty strong {
+  color: #17243d;
+  font-size: 13px;
+}
+
+.registry-empty span {
+  font-size: 10px;
+}
+
+@media (max-width: 980px) {
+  .registry-hero,
+  .registry-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .registry-route {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .config-registry-page {
+    padding: 30px 14px 50px;
+  }
+
+  .registry-route {
+    display: none;
+  }
+
+  .registry-section > header {
+    grid-template-columns: 42px 1fr auto;
+    padding: 0 15px;
+  }
+
+  .registry-section header em {
+    display: none;
+  }
+
+  .registry-form {
+    grid-template-columns: 1fr;
+    padding: 18px 15px;
+  }
+
+  .registry-form label,
+  .registry-form .wide-field,
+  .registry-form > button {
+    grid-column: 1;
+  }
+}
