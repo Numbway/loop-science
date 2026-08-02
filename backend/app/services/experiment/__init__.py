@@ -9,6 +9,7 @@ from app.services.experiment.error_recovery import (
     recovery_metadata,
 )
 from app.services.experiment.executor import ExperimentExecutor, ExperimentResult
+from app.services.experiment.remote_executor import RemoteExperimentExecutor
 from app.services.experiment.monitor import (
     ExperimentMetrics,
     ExperimentMonitor,
@@ -27,6 +28,7 @@ __all__ = [
     "LogSummary",
     "MonitorResult",
     "RecoveryOutcome",
+    "RemoteExperimentExecutor",
     "classify_failure",
     "parse_train_log",
     "public_experiment_config",

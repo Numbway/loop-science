@@ -19,7 +19,10 @@ class Settings(BaseSettings):
 
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_BASE_URL: str = "https://api.anthropic.com"
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
     SEMANTIC_SCHOLAR_API_KEY: str = ""
+    CREDENTIAL_ENCRYPTION_KEY: str = ""
 
     # Storage
     STORAGE_PATH: str = "/data/projects"

@@ -182,7 +182,8 @@ async def test_monitor_experiment_publishes_progress_and_completion(
             return None
 
     class FakeMonitor:
-        def __init__(self, _storage, *, progress_callback):
+        def __init__(self, _storage, *, executor, progress_callback):
+            assert executor is not None
             self.progress_callback = progress_callback
 
         async def monitor_experiment(self, value):
@@ -252,7 +253,8 @@ async def test_monitor_failure_invokes_recovery_with_anomaly_log(monkeypatch) ->
             return None
 
     class FakeMonitor:
-        def __init__(self, _storage, *, progress_callback):
+        def __init__(self, _storage, *, executor, progress_callback):
+            assert executor is not None
             return None
 
         async def monitor_experiment(self, value):

@@ -189,6 +189,25 @@
   opacity: 0.58;
 }
 
+.tree-connections {
+  display: inline-flex;
+  gap: 7px;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--atlas-ink);
+  border: 1px solid var(--atlas-ink);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tree-connections:hover {
+  color: white;
+  background: var(--atlas-ink);
+}
+
 .tree-summary-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 0.55fr)) minmax(240px, 1.45fr);

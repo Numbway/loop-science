@@ -1,7 +1,6 @@
 """Project model."""
 
 import uuid
-from datetime import datetime
 
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON
@@ -26,6 +25,7 @@ class Project(Base, UUIDMixin, TimestampMixin):
     paper_title: Mapped[str] = mapped_column(String(500), nullable=False)
     paper_path: Mapped[str] = mapped_column(String(500), nullable=False)
     paper_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+    paper_analysis: Mapped[dict] = mapped_column(JSON, default=dict)
 
     # Improvement configuration
     improvement_targets: Mapped[list] = mapped_column(JSON, default=list)
@@ -34,6 +34,23 @@ class Project(Base, UUIDMixin, TimestampMixin):
 
     # Git repository path
     repo_path: Mapped[str] = mapped_column(String(500), default="")
+
+    # Experiment readiness. Credentials are encrypted separately and never
+    # serialized by project APIs.
+    preparation_config: Mapped[dict] = mapped_column(JSON, default=dict)
+    encrypted_credentials: Mapped[str] = mapped_column(Text, default="")
+    ai_credential_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("credential_profiles.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    ssh_credential_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("credential_profiles.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Status: created, running, paused, completed
     status: Mapped[str] = mapped_column(String(50), default="created")

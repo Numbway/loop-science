@@ -20,8 +20,12 @@ def main() -> None:
     if not entrypoint_path.is_file() or entrypoint_path.parent != Path("/workspace/code"):
         raise SystemExit("entrypoint must be a file at the code directory root")
     os.environ["EXPERIMENT_CONFIG"] = json.dumps(config)
+    if config.get("data_path"):
+        os.environ["DATA_PATH"] = str(config["data_path"])
     os.chdir("/workspace/output")
     sys.path.insert(0, str(entrypoint_path.parent))
+    # The executor's own --config argument must not leak into user argparse.
+    sys.argv = [str(entrypoint_path)]
     runpy.run_path(str(entrypoint_path), run_name="__main__")
 
 

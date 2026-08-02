@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -15,13 +15,16 @@ from app.core.config import settings
 from app.core.database import async_session_factory
 from app.models.experiment import Experiment
 from app.models.experiment_log import ExperimentLog
+from app.models.credential_profile import CredentialProfile
 from app.models.project import Project
 from app.schemas.realtime import ProjectRealtimeEvent
 from app.services.ai.code_agent import CodeAgent
+from app.services.credentials import decrypt_credentials
 from app.services.experiment import (
     AutoErrorHandler,
     ExperimentExecutor,
     ExperimentMonitor,
+    RemoteExperimentExecutor,
     RecoveryOutcome,
     parse_train_log,
     recovery_metadata,
@@ -46,6 +49,85 @@ def should_continue(
         metrics.get(key, float("-inf")) >= value
         for key, value in target_metrics.items()
     )
+
+
+async def _executor_for_project(project: Project, session: Any) -> Any:
+    """Build the local or verified SSH executor selected during preparation."""
+    has_preparation_field = hasattr(project, "preparation_config")
+    preparation = getattr(project, "preparation_config", {}) or {}
+    data_config = preparation.get("data") or {}
+    local_data_path = data_config.get("storage_path")
+    profile_id = getattr(project, "ssh_credential_profile_id", None)
+    if profile_id:
+        profile = await session.get(CredentialProfile, profile_id)
+        if (
+            profile is None
+            or profile.user_id != project.user_id
+            or profile.kind != "ssh"
+            or not profile.verified
+        ):
+            raise RuntimeError("The selected SSH configuration is unavailable.")
+        execution = dict(profile.public_config or {})
+        ssh_secret = decrypt_credentials(profile.encrypted_credentials)
+        remote_data_path = data_config.get("remote_path")
+        if (
+            data_config.get("source") != "remote"
+            or data_config.get("ssh_profile_id") != str(profile.id)
+            or not remote_data_path
+            or not ssh_secret
+        ):
+            raise RuntimeError(
+                "Remote execution credentials or selected data are unavailable."
+            )
+        return RemoteExperimentExecutor(
+            settings.STORAGE_PATH,
+            execution,
+            ssh_secret,
+            remote_data_path,
+        )
+    if has_preparation_field:
+        raise RuntimeError(
+            "This project has no verified SSH execution target. "
+            "Complete experiment preparation before scheduling it."
+        )
+    if local_data_path:
+        return ExperimentExecutor(
+            settings.STORAGE_PATH,
+            data_path=local_data_path,
+        )
+    return ExperimentExecutor(settings.STORAGE_PATH)
+
+
+async def _llm_connection_for_project(
+    project: Project,
+    session: Any,
+) -> dict[str, str]:
+    """Load the reusable model connection selected by a project."""
+    profile_id = getattr(project, "ai_credential_profile_id", None)
+    if not profile_id:
+        return {}
+    profile = await session.get(CredentialProfile, profile_id)
+    if (
+        profile is None
+        or profile.user_id != project.user_id
+        or profile.kind != "llm"
+        or not profile.verified
+    ):
+        return {}
+    public = profile.public_config or {}
+    api_key = str(
+        decrypt_credentials(profile.encrypted_credentials).get("api_key") or ""
+    )
+    if not api_key:
+        return {}
+    return {
+        "api_key": api_key,
+        "model": str(public.get("model") or settings.ANTHROPIC_MODEL),
+        "base_url": str(
+            public.get("base_url") or settings.ANTHROPIC_BASE_URL
+        ),
+        "provider": str(public.get("provider") or "anthropic"),
+    }
 
 
 async def _next_experiment_id(project_id: uuid.UUID) -> str | None:
@@ -97,7 +179,15 @@ async def _next_experiment_id(project_id: uuid.UUID) -> str | None:
 async def _cleanup_container_for_retry(experiment_id: uuid.UUID) -> str | None:
     """Remove an exited container so its stable experiment name can be reused."""
     try:
-        await ExperimentExecutor(settings.STORAGE_PATH).cleanup(experiment_id)
+        async with async_session_factory() as session:
+            experiment = await session.get(Experiment, experiment_id)
+            if experiment is None:
+                return None
+            project = await session.get(Project, experiment.project_id)
+            if project is None:
+                return None
+            executor = await _executor_for_project(project, session)
+        await executor.cleanup(experiment_id)
     except Exception as error:  # noqa: BLE001 - Docker SDK boundary
         detail = f"{type(error).__name__}: {error}"
         normalized = detail.casefold()
@@ -125,7 +215,11 @@ async def _attempt_error_recovery(
         repository_error = ""
         try:
             git_service.checkout_branch(project.id, experiment.git_branch)
-            repair_agent = CodeAgent(git_service._repository_path(project.id))
+            llm_connection = await _llm_connection_for_project(project, session)
+            repair_agent = CodeAgent(
+                git_service._repository_path(project.id),
+                **llm_connection,
+            )
         except GitServiceError as error:
             repository_error = f"{error.message} {error.hint}"
 
@@ -192,7 +286,7 @@ async def _attempt_error_recovery(
                     experiment_id=experiment.id,
                     level="warning" if outcome.retry else "error",
                     message=message,
-                    timestamp=datetime.now(UTC),
+                    timestamp=datetime.now(timezone.utc),
                 )
             )
         if outcome.retry:
@@ -232,7 +326,7 @@ async def _mark_recovery_succeeded(
                 "status": "recovered",
                 "message": "The automatic retry completed successfully.",
                 "action": "No further action is required.",
-                "updated_at": datetime.now(UTC).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         )
         config = dict(experiment.config or {})
@@ -243,7 +337,7 @@ async def _mark_recovery_succeeded(
                 experiment_id=experiment.id,
                 level="info",
                 message="[auto-recovery] Automatic retry completed successfully.",
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.now(timezone.utc),
             )
         )
         await session.commit()
@@ -259,7 +353,7 @@ async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
         if project is None or project.status != "running":
             return {"experiment_id": str(experiment_id), "status": "not_scheduled"}
         experiment.status = "running"
-        experiment.started_at = datetime.now(UTC)
+        experiment.started_at = datetime.now(timezone.utc)
         await session.commit()
         await publish_project_event(
             ProjectRealtimeEvent(
@@ -274,14 +368,16 @@ async def _start_experiment(experiment_id: uuid.UUID) -> dict[str, str]:
             GitService(settings.STORAGE_PATH).checkout_branch(
                 project.id, experiment.git_branch
             )
-            result = await ExperimentExecutor(settings.STORAGE_PATH).run_experiment(
+            result = await (
+                await _executor_for_project(project, session)
+            ).run_experiment(
                 experiment.id,
                 GitService(settings.STORAGE_PATH)._repository_path(project.id),
                 experiment.config,
             )
         except Exception as error:
             experiment.status = "failed"
-            experiment.completed_at = datetime.now(UTC)
+            experiment.completed_at = datetime.now(timezone.utc)
             await session.commit()
             error_text = f"Experiment launch failed: {type(error).__name__}: {error}"
             await publish_project_event(
@@ -315,6 +411,10 @@ async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
         if experiment is None:
             raise LookupError(f"Experiment {experiment_id} does not exist.")
         project_id = experiment.project_id
+        project = await session.get(Project, project_id)
+        if project is None:
+            raise LookupError(f"Project {project_id} does not exist.")
+        executor = await _executor_for_project(project, session)
 
     broker = RealtimeEventBroker(settings.REDIS_URL)
 
@@ -336,6 +436,7 @@ async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
 
     monitor = ExperimentMonitor(
         settings.STORAGE_PATH,
+        executor=executor,
         progress_callback=publish_progress,
     )
     try:
@@ -348,7 +449,7 @@ async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
                 project_id=project_id,
                 experiment_id=experiment_id,
                 status="failed",
-                completed_at=datetime.now(UTC),
+                completed_at=datetime.now(timezone.utc),
                 error=error_text,
             )
         )
@@ -386,7 +487,7 @@ async def _monitor_experiment(experiment_id: uuid.UUID) -> dict[str, Any]:
                 experiment_id=experiment_id,
                 status=result.status,
                 metrics=result.metrics,
-                completed_at=datetime.now(UTC),
+                completed_at=datetime.now(timezone.utc),
                 error=(
                     "Experiment container exited without success"
                     if result.status == "failed"

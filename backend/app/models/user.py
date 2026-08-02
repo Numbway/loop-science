@@ -1,7 +1,5 @@
 """User model."""
 
-from datetime import datetime
-
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +18,11 @@ class User(Base, UUIDMixin, TimestampMixin):
 
     # Relationships
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
+    credential_profiles = relationship(
+        "CredentialProfile",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

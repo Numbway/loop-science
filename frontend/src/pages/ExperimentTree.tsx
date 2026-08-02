@@ -10,6 +10,7 @@ import {
   NodeIndexOutlined,
   PlusOutlined,
   ReloadOutlined,
+  SettingOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -437,6 +438,13 @@ export default function ExperimentTreePage() {
             <ReloadOutlined />
             刷新
           </button>
+          <Link
+            className="tree-connections"
+            to={`/projects/${projectId}/connections`}
+          >
+            <SettingOutlined />
+            连接配置
+          </Link>
         </div>
       </header>
 

@@ -10,6 +10,7 @@ from typing import Any
 
 from app.core.config import settings
 from app.schemas.ai import Diagnosis, Suggestion
+from app.services.ai.provider import build_model_client, create_text_completion
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +49,25 @@ class Diagnostician:
     Falls back to mock mode with simulated analysis when no API key.
     """
 
-    def __init__(self, api_key: str = ""):
+    def __init__(
+        self,
+        api_key: str = "",
+        model: str = "",
+        base_url: str = "",
+        provider: str = "anthropic",
+    ):
         self._api_key = api_key or settings.ANTHROPIC_API_KEY
+        self._model = model or settings.ANTHROPIC_MODEL
+        self._base_url = base_url or settings.ANTHROPIC_BASE_URL
+        self._provider = provider
         self._is_mock = not self._api_key or self._api_key == "sk-ant-xxx"
 
         if not self._is_mock:
-            from anthropic import Anthropic
-
-            self._client = Anthropic(api_key=self._api_key)
+            self._client = build_model_client(
+                provider=self._provider,
+                api_key=self._api_key,
+                base_url=self._base_url,
+            )
 
     async def diagnose(
         self,
@@ -121,21 +133,19 @@ Log Summary: {log[:2000] if log else 'No log available'}
 Analyze the experiment and generate improvement suggestions in the specified JSON format."""
 
         try:
-            response = self._client.messages.create(
-                model="claude-sonnet-4-6",
+            text = create_text_completion(
+                client=self._client,
+                provider=self._provider,
+                model=self._model,
                 max_tokens=4096,
-                system=[
-                    {"type": "text", "text": DIAGNOSIS_SYSTEM_PROMPT},
-                    {
-                        "type": "text",
-                        "text": f"## Reference Papers (cached)\n{papers_text}",
-                        "cache_control": {"type": "ephemeral"},
-                    },
-                ] if papers_text else DIAGNOSIS_SYSTEM_PROMPT,
+                system=(
+                    f"{DIAGNOSIS_SYSTEM_PROMPT}\n\n"
+                    f"## Reference Papers\n{papers_text}"
+                    if papers_text
+                    else DIAGNOSIS_SYSTEM_PROMPT
+                ),
                 messages=[{"role": "user", "content": user_message}],
             )
-
-            text = response.content[0].text
             return self._parse_diagnosis(text)
 
         except Exception as e:

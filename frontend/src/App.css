@@ -73,6 +73,7 @@
 }
 
 .header-action,
+.header-utility,
 .logout-action,
 .user-chip {
   display: inline-flex;
@@ -86,6 +87,12 @@
 .header-action {
   color: white;
   background: #17243d;
+  text-decoration: none;
+}
+
+.header-utility {
+  color: #526176;
+  border: 1px solid #cbd6e3;
   text-decoration: none;
 }
 

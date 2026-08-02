@@ -38,10 +38,12 @@ class ExperimentExecutor:
         image: str | None = None,
         client: Any | None = None,
         sandbox_mode: bool | None = None,
+        data_path: Path | str | None = None,
     ) -> None:
         self._storage_root = Path(storage_root).resolve()
         self._image = image or settings.EXECUTOR_IMAGE
         self._client = client
+        self._data_path = Path(data_path).resolve() if data_path else None
         self._sandbox_mode = (
             settings.EXECUTOR_SANDBOX_MODE if sandbox_mode is None else sandbox_mode
         )
@@ -78,7 +80,29 @@ class ExperimentExecutor:
     ) -> ExperimentResult:
         code_directory, output_directory = self._paths(experiment_id, code_path)
         config_path = output_directory / "config.json"
-        config_path.write_text(json.dumps(config), encoding="utf-8")
+        runtime_config = dict(config)
+        volumes = {
+            str(code_directory): {"bind": "/workspace/code", "mode": "ro"},
+            str(output_directory): {"bind": "/workspace/output", "mode": "rw"},
+        }
+        if self._data_path is not None:
+            if not self._data_path.is_dir() or not self._data_path.is_relative_to(
+                self._storage_root
+            ):
+                raise ExperimentExecutorError(
+                    "Experiment data must be a directory within storage."
+                )
+            volumes[str(self._data_path)] = {
+                "bind": "/workspace/data",
+                "mode": "ro",
+            }
+            selected_name = str(config.get("data", {}).get("selected_name") or "")
+            runtime_config["data_path"] = str(
+                Path("/workspace/data") / selected_name
+                if selected_name
+                else Path("/workspace/data")
+            )
+        config_path.write_text(json.dumps(runtime_config), encoding="utf-8")
         container = await asyncio.to_thread(
             self._docker_client().containers.run,
             self._image,
@@ -87,10 +111,7 @@ class ExperimentExecutor:
             detach=True,
             network_disabled=True,
             read_only=True,
-            volumes={
-                str(code_directory): {"bind": "/workspace/code", "mode": "ro"},
-                str(output_directory): {"bind": "/workspace/output", "mode": "rw"},
-            },
+            volumes=volumes,
             environment={"SANDBOX_MODE": "1" if self._sandbox_mode else "0"},
         )
         return ExperimentResult(

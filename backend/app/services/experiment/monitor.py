@@ -7,7 +7,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -211,7 +211,7 @@ class ExperimentMonitor:
                     experiment_id=experiment_id,
                     level=classify_log_level(message),
                     message=message,
-                    timestamp=datetime.now(UTC),
+                    timestamp=datetime.now(timezone.utc),
                 )
             )
             await session.commit()
@@ -227,14 +227,14 @@ class ExperimentMonitor:
             experiment = await session.get(Experiment, experiment_id)
             if experiment is None:
                 raise LookupError(f"Experiment {experiment_id} does not exist.")
-            completed_at = datetime.now(UTC)
+            completed_at = datetime.now(timezone.utc)
             experiment.status = status
             experiment.metrics = metrics
             experiment.completed_at = completed_at
             if experiment.started_at is not None:
                 started_at = experiment.started_at
                 if started_at.tzinfo is None:
-                    started_at = started_at.replace(tzinfo=UTC)
+                    started_at = started_at.replace(tzinfo=timezone.utc)
                 experiment.duration_seconds = max(
                     0, int((completed_at - started_at).total_seconds())
                 )

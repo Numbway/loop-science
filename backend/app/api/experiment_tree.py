@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -119,7 +119,7 @@ async def get_experiment_tree(
         target_metrics=project.target_metrics or {},
         max_iterations=project.max_iterations,
         nodes=[_tree_node(experiment) for experiment in experiments],
-        updated_at=datetime.now(UTC),
+        updated_at=datetime.now(timezone.utc),
     )
 
 

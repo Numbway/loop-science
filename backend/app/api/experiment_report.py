@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -113,7 +113,7 @@ async def generate_experiment_report(
 
     generated_at = datetime.fromtimestamp(
         Path(experiment.report_html_path).stat().st_mtime,
-        tz=UTC,
+        tz=timezone.utc,
     )
     return ExperimentReportResponse(
         available=True,

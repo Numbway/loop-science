@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -17,14 +18,17 @@ from app.api.project_wizard import (
     start_project_dialog,
     upload_project_paper,
 )
+from app.models.credential_profile import CredentialProfile
 from app.schemas.project_wizard import SaveCodeRequest
 from app.services.ai import BrainstormDialog, CodeAgent
+from app.services.credentials import encrypt_credentials
 
 
 class FakeSession:
     def __init__(self) -> None:
         self.added = []
         self.commits = 0
+        self.profiles = {}
 
     def add(self, value) -> None:
         self.added.append(value)
@@ -37,6 +41,11 @@ class FakeSession:
 
     async def commit(self) -> None:
         self.commits += 1
+
+    async def get(self, model, identifier):
+        if model is CredentialProfile:
+            return self.profiles.get(identifier)
+        return None
 
 
 def make_paper_upload() -> UploadFile:
@@ -101,9 +110,73 @@ async def test_complete_wizard_creates_reviewed_code_and_queues_experiment(
     project = db.added[0]
     assert uploaded.paper_title == "Adaptive Vision Systems"
     assert project.paper_path.endswith("paper.pdf")
+    ssh_profile_id = uuid.uuid4()
+    project.paper_analysis = {
+        "summary": "A compact adaptive vision model.",
+        "research_problem": "Image classification",
+    }
+    project.preparation_config = {
+        "ai": {
+            "configured": True,
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+        },
+        "data": {
+            "ready": True,
+            "source": "remote",
+            "kind": "file",
+            "selected_name": "samples.csv",
+            "file_count": 1,
+            "total_bytes": 20,
+            "remote_path": "/srv/research/datasets/samples.csv",
+            "ssh_profile_id": str(ssh_profile_id),
+        },
+        "execution": {
+            "ready": True,
+            "mode": "ssh",
+            "host": "gpu.example.edu",
+            "port": 22,
+            "username": "researcher",
+            "auth_type": "password",
+            "host_key_fingerprint": "SHA256:test",
+            "capabilities": {"python": "Python 3.11"},
+        },
+    }
+    now = datetime.now(timezone.utc)
+    llm_profile = CredentialProfile(
+        id=uuid.uuid4(),
+        user_id=project.user_id,
+        name="Test LLM",
+        kind="llm",
+        public_config={
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+        },
+        encrypted_credentials=encrypt_credentials({"api_key": "sk-ant-xxx"}),
+        verified=True,
+        created_at=now,
+        updated_at=now,
+    )
+    ssh_profile = CredentialProfile(
+        id=ssh_profile_id,
+        user_id=project.user_id,
+        name="Test SSH",
+        kind="ssh",
+        public_config=project.preparation_config["execution"],
+        encrypted_credentials=encrypt_credentials({"password": "test-only"}),
+        verified=True,
+        created_at=now,
+        updated_at=now,
+    )
+    db.profiles = {
+        llm_profile.id: llm_profile,
+        ssh_profile.id: ssh_profile,
+    }
+    project.ai_credential_profile_id = llm_profile.id
+    project.ssh_credential_profile_id = ssh_profile.id
 
     dialog = BrainstormDialog()
-    question = await start_project_dialog(project=project, dialog=dialog)
+    question = await start_project_dialog(project=project, dialog=dialog, db=db)
     assert question.complete is False
     assert question.question
 

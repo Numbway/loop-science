@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import uuid
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -62,7 +62,7 @@ class HTMLReportGenerator:
         reference_papers: list[ReferencePaper],
     ) -> str:
         """Generate all seven report sections and return the private file path."""
-        generated_at = datetime.now(UTC)
+        generated_at = datetime.now(timezone.utc)
         metric_rows = self._metric_rows(experiment, parent_experiment, project)
         primary_metric = self._primary_metric(metric_rows)
         code_diff = self._code_diff(experiment, project, parent_experiment)
@@ -433,8 +433,8 @@ class HTMLReportGenerator:
         if value is None:
             return "—"
         if value.tzinfo is None:
-            value = value.replace(tzinfo=UTC)
-        return value.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     @staticmethod
     def _format_duration(seconds: int | None) -> str:

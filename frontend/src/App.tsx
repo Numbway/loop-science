@@ -1,7 +1,9 @@
 import {
+  AppstoreOutlined,
   ExperimentOutlined,
   LogoutOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { lazy, Suspense } from "react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
@@ -9,9 +11,20 @@ import { useAuthStore } from "./store/auth";
 import "./App.css";
 
 const LoginPage = lazy(() => import("./pages/Login"));
+const ProjectDashboardPage = lazy(() => import("./pages/ProjectDashboard"));
+const ProjectStartPage = lazy(() => import("./pages/ProjectStart"));
 const ProjectWizardPage = lazy(() => import("./pages/ProjectWizard"));
+const ExistingAssetsWizardPage = lazy(
+  () => import("./pages/ExistingAssetsWizard"),
+);
 const ExperimentTreePage = lazy(() => import("./pages/ExperimentTree"));
 const ExperimentDetailPage = lazy(() => import("./pages/ExperimentDetail"));
+const SystemConfigurationsPage = lazy(
+  () => import("./pages/SystemConfigurations"),
+);
+const ProjectConnectionsPage = lazy(
+  () => import("./pages/ProjectConnections"),
+);
 
 function App() {
   const { token, user, logout } = useAuthStore();
@@ -32,9 +45,17 @@ function App() {
           {token ? (
             <>
               <span className="user-chip">{user?.name ?? "研究者"}</span>
+              <Link className="header-utility" to="/projects">
+                <AppstoreOutlined />
+                <span>实验管理</span>
+              </Link>
               <Link className="header-action" to="/projects/new">
                 <PlusOutlined />
                 <span>新建项目</span>
+              </Link>
+              <Link className="header-utility" to="/settings/connections">
+                <SettingOutlined />
+                <span>系统配置</span>
               </Link>
               <button className="logout-action" type="button" onClick={logout}>
                 <LogoutOutlined />
@@ -59,11 +80,55 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={<WelcomePage authenticated={Boolean(token)} />}
+            element={
+              token ? (
+                <ProjectDashboardPage />
+              ) : (
+                <WelcomePage authenticated={false} />
+              )
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              token ? <ProjectDashboardPage /> : <Navigate to="/login" replace />
+            }
           />
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/projects/new"
+            element={
+              token ? <ProjectStartPage /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/projects/new/from-paper"
+            element={
+              token ? <ProjectWizardPage /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/projects/new/from-assets"
+            element={
+              token ? (
+                <ExistingAssetsWizardPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/projects/:projectId/continue"
+            element={
+              token ? (
+                <ExistingAssetsWizardPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/projects/:projectId/continue-paper"
             element={
               token ? <ProjectWizardPage /> : <Navigate to="/login" replace />
             }
@@ -72,6 +137,26 @@ function App() {
             path="/projects/:projectId/tree"
             element={
               token ? <ExperimentTreePage /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/settings/connections"
+            element={
+              token ? (
+                <SystemConfigurationsPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/projects/:projectId/connections"
+            element={
+              token ? (
+                <ProjectConnectionsPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             }
           />
           <Route

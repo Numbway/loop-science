@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import re
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Literal, Protocol
 
 from app.schemas.ai import AgentResult
@@ -70,7 +70,7 @@ class RecoveryOutcome:
                 "status": "needs_attention",
                 "message": message,
                 "action": action,
-                "updated_at": datetime.now(UTC).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         )
         config[RECOVERY_METADATA_KEY] = metadata
@@ -376,7 +376,7 @@ class AutoErrorHandler:
             "max_attempts": self._max_attempts,
             "message": message,
             "action": action,
-            "updated_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         config[RECOVERY_METADATA_KEY] = metadata
         return RecoveryOutcome(

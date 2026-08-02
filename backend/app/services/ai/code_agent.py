@@ -11,6 +11,10 @@ from typing import Any
 
 from app.core.config import settings
 from app.schemas.ai import AgentResult
+from app.services.ai.provider import (
+    OPENAI_COMPATIBLE_PROVIDER,
+    build_model_client,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +83,18 @@ TOOLS = [
     },
 ]
 
+OPENAI_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": tool["name"],
+            "description": tool["description"],
+            "parameters": tool["input_schema"],
+        },
+    }
+    for tool in TOOLS
+]
+
 SYSTEM_PROMPT = """You are an expert deep learning researcher and PyTorch developer.
 You work in a workspace directory. You can read, write, and edit files.
 When you finish your task, output a summary of what you did.
@@ -92,16 +108,28 @@ class CodeAgent:
     In mock mode: returns simulated responses for offline development.
     """
 
-    def __init__(self, workspace: str | Path, api_key: str = ""):
+    def __init__(
+        self,
+        workspace: str | Path,
+        api_key: str = "",
+        model: str = "",
+        base_url: str = "",
+        provider: str = "anthropic",
+    ):
         self.workspace = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
         self._api_key = api_key or settings.ANTHROPIC_API_KEY
+        self._model = model or settings.ANTHROPIC_MODEL
+        self._base_url = base_url or settings.ANTHROPIC_BASE_URL
+        self._provider = provider
         self._is_mock = not self._api_key or self._api_key == "sk-ant-xxx"
 
         if not self._is_mock:
-            from anthropic import Anthropic
-
-            self._client = Anthropic(api_key=self._api_key)
+            self._client = build_model_client(
+                provider=self._provider,
+                api_key=self._api_key,
+                base_url=self._base_url,
+            )
 
     # ── Public API ───────────────────────────────────────────────
 
@@ -129,6 +157,15 @@ class CodeAgent:
 ## Target Metrics
 {json.dumps(config.get('target_metrics', {}), indent=2)}
 
+## Structured Paper Analysis
+{json.dumps(config.get('paper_analysis', {}), ensure_ascii=False, indent=2)}
+
+## Selected Data Manifest
+{json.dumps(config.get('data', {}), ensure_ascii=False, indent=2)}
+
+## Verified Execution Environment
+{json.dumps(config.get('execution', {}), ensure_ascii=False, indent=2)}
+
 ## Files to Generate
 1. data.py — data loading and preprocessing
 2. model.py — model definition based on the paper
@@ -146,6 +183,10 @@ class CodeAgent:
 - TensorBoard logs to ./runs/
 - Support SANDBOX_MODE=true env var to run only 1 batch for validation
 - Read batch_size, learning_rate, and device overrides from EXPERIMENT_CONFIG
+- Read the actual file/folder input path from EXPERIMENT_CONFIG["data_path"] or
+  the DATA_PATH environment variable; never synthesize or download replacement data
+- Validate the selected data shape/schema and fail with an actionable message when
+  it does not match the paper's requirements
 - After writing each file, run run_check to verify syntax
 - Output a summary of all files created and key design decisions."""
 
@@ -211,7 +252,10 @@ Please:
         user_message: str,
         max_turns: int,
     ) -> AgentResult:
-        """Run the tool-use agent loop with Anthropic SDK."""
+        """Run a tool-use loop using the selected model protocol."""
+        if self._provider == OPENAI_COMPATIBLE_PROVIDER:
+            return await self._run_openai_agent_loop(user_message, max_turns)
+
         messages: list[dict[str, Any]] = [
             {"role": "user", "content": user_message}
         ]
@@ -221,7 +265,7 @@ Please:
         for iteration in range(max_turns):
             try:
                 response = self._client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model=self._model,
                     max_tokens=8192,
                     system=SYSTEM_PROMPT,
                     tools=TOOLS,
@@ -271,6 +315,97 @@ Please:
                                 modified_files.append(path)
 
                 messages.append({"role": "user", "content": tool_results})
+
+        return AgentResult(
+            success=False,
+            final_message=f"Max turns ({max_turns}) reached without completion",
+            iterations=max_turns,
+            modified_files=modified_files,
+            errors=errors,
+        )
+
+    async def _run_openai_agent_loop(
+        self,
+        user_message: str,
+        max_turns: int,
+    ) -> AgentResult:
+        """Run the same workspace tools through OpenAI-compatible chat calls."""
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ]
+        modified_files: list[str] = []
+        errors: list[str] = []
+
+        for iteration in range(max_turns):
+            try:
+                response = self._client.chat.completions.create(
+                    model=self._model,
+                    max_tokens=8192,
+                    tools=OPENAI_TOOLS,
+                    messages=messages,
+                )
+            except Exception as error:  # noqa: BLE001 - provider boundary
+                errors.append(str(error))
+                return AgentResult(
+                    success=False,
+                    final_message=f"API call failed: {error}",
+                    iterations=iteration,
+                    modified_files=modified_files,
+                    errors=errors,
+                )
+
+            message = response.choices[0].message
+            tool_calls = list(message.tool_calls or [])
+            if not tool_calls:
+                return AgentResult(
+                    success=True,
+                    final_message=str(message.content or ""),
+                    iterations=iteration + 1,
+                    modified_files=modified_files,
+                    errors=errors,
+                )
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": message.content,
+                    "tool_calls": [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {
+                                "name": call.function.name,
+                                "arguments": call.function.arguments,
+                            },
+                        }
+                        for call in tool_calls
+                    ],
+                }
+            )
+            for call in tool_calls:
+                try:
+                    arguments = json.loads(call.function.arguments or "{}")
+                    if not isinstance(arguments, dict):
+                        raise ValueError("tool arguments must be an object")
+                    result = await self._execute_tool(
+                        call.function.name,
+                        arguments,
+                    )
+                except (json.JSONDecodeError, ValueError) as error:
+                    result = f"Error: invalid tool arguments: {error}"
+                    arguments = {}
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": call.id,
+                        "content": result,
+                    }
+                )
+                if call.function.name in {"write_file", "edit_file"}:
+                    path = str(arguments.get("path") or "")
+                    if path and path not in modified_files:
+                        modified_files.append(path)
 
         return AgentResult(
             success=False,

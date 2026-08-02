@@ -11,6 +11,7 @@ from typing import Any
 
 from app.core.config import settings
 from app.schemas.ai import DialogQuestion, ProjectConfig
+from app.services.ai.provider import build_model_client, create_text_completion
 
 logger = logging.getLogger(__name__)
 
@@ -48,15 +49,26 @@ class BrainstormDialog:
     Manages conversation sessions with a 6-question maximum.
     """
 
-    def __init__(self, api_key: str = ""):
+    def __init__(
+        self,
+        api_key: str = "",
+        model: str = "",
+        base_url: str = "",
+        provider: str = "anthropic",
+    ):
         self._api_key = api_key or settings.ANTHROPIC_API_KEY
+        self._model = model or settings.ANTHROPIC_MODEL
+        self._base_url = base_url or settings.ANTHROPIC_BASE_URL
+        self._provider = provider
         self._is_mock = not self._api_key or self._api_key == "sk-ant-xxx"
         self._sessions: dict[str, list[dict[str, Any]]] = {}
 
         if not self._is_mock:
-            from anthropic import Anthropic
-
-            self._client = Anthropic(api_key=self._api_key)
+            self._client = build_model_client(
+                provider=self._provider,
+                api_key=self._api_key,
+                base_url=self._base_url,
+            )
 
     async def start_session(
         self,
@@ -186,14 +198,14 @@ class BrainstormDialog:
             ]
 
         try:
-            response = self._client.messages.create(
-                model="claude-sonnet-4-6",
+            text = create_text_completion(
+                client=self._client,
+                provider=self._provider,
+                model=self._model,
                 max_tokens=1024,
                 system=system,
                 messages=messages,
             )
-
-            text = response.content[0].text
             return self._parse_question(text)
 
         except Exception:

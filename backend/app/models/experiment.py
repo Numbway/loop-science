@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
@@ -43,8 +43,12 @@ class Experiment(Base, UUIDMixin, TimestampMixin):
         String(50), default="pending"
     )  # "pending", "running", "completed", "failed"
     created_by: Mapped[str] = mapped_column(String(20), default="ai")  # "ai" or "user"
-    started_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships

@@ -21,8 +21,13 @@ frontend/dist/
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
 
 # OS
 .DS_Store
